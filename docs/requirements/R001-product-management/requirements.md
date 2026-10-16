@@ -20,7 +20,7 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 ## Business goals
 
-- **BG-01:** The Admin can add, view, update and delete any product from the product management page without outside help, and each single operation takes under 1 minute. *(Target is an assumption, to be confirmed.)*
+- **BG-01:** The Admin can add, view, update and delete any product from the product management page without outside help, and each single operation takes under 1 minute. *(Target confirmed in clarification 2026-10-16.)*
 - **BG-02:** Every product in the system has a recorded stock quantity: 100% of products have a whole-number quantity of 0 or more at all times.
 - **BG-03:** No Active product that is still in stock gets deleted: 0 such deletions.
 
@@ -57,7 +57,7 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 | Product | Something the shop sells and keeps stock of, with its product information, stock quantity and product status | item, article, goods, SKU (as a synonym for the whole product) |
 | Product information | The descriptive fields of a product: name, SKU, price and description; excludes stock quantity and product status | product data, product details (for the fields) |
 | SKU | The shop's unique code for a product (stock keeping unit) | code, reference, barcode, ID |
-| Price | The selling price of one unit of a product, in the shop's currency | cost, amount, rate |
+| Price | The selling price of one unit of a product, a whole number of Vietnamese dong (VND) | cost, amount, rate |
 | Stock quantity | Whole number of units of a product the shop has, 0 or more | stock level, inventory count, qty, amount |
 | Starting stock quantity | The stock quantity a product gets when it is added: always exactly 1, not entered by the Admin | default stock, initial inventory |
 | Out of stock | A product whose stock quantity is 0 | sold out, empty |
@@ -140,13 +140,14 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 ### PR-07 — Adjust stock
 
 1. From the product details, the Admin chooses to adjust the stock.
-2. The Admin chooses add or remove and enters a number of units (a whole number of 1 or more).
+2. The Admin chooses add or remove and enters a number of units (a whole number from 1 to 1,000,000).
 3. The Admin saves.
 4. The system applies the adjustment to the stored stock quantity and shows the updated product details.
 
 **Exceptions:**
-- The number of units is missing, 0, negative or not a whole number → the system rejects it, the stock quantity is unchanged and the reason is shown next to the field.
+- The number of units is missing, 0, negative, above 1,000,000 or not a whole number → the system rejects it, the stock quantity is unchanged and the reason is shown next to the field.
 - Removing the units would bring the stock quantity below 0 → the system refuses, tells the Admin the current stock quantity, and the stock quantity is unchanged.
+- Adding the units would bring the stock quantity above 1,000,000 → the system refuses, tells the Admin the current stock quantity and the limit, and the stock quantity is unchanged.
 - The product no longer exists → "product not found".
 - The Admin cancels → nothing changes.
 
@@ -180,26 +181,27 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 - **BR-001:** A newly added product always gets a stock quantity of exactly 1. *(Source: input "stocks default … at least 1"; clarification 2026-10-16)*
 - **BR-002:** The Admin does not enter a stock quantity when adding a product; the add form has no stock quantity field. *(Source: clarification 2026-10-16)*
-- **BR-003:** After a product is added, its stock quantity is a whole number of 0 or more; a negative or fractional quantity is rejected. *(Source: input "stock quantity is down to 0"; clarification 2026-10-16)*
+- **BR-003:** After a product is added, its stock quantity is a whole number from 0 to 1,000,000; a negative, fractional or larger quantity is never stored. *(Source: input "stock quantity is down to 0"; clarification 2026-10-16)*
 - **BR-004:** A product may be deleted only if its product status is Draft or its stock quantity is 0. *(Source: input)*
 - **BR-005:** When a deletion is refused under BR-004, the system tells the Admin the reason and the product stays unchanged. *(Source: assumption)*
 - **BR-006:** A deletion takes effect only after the Admin explicitly confirms it. *(Source: assumption)*
 - **BR-007:** A deleted product no longer appears in the product list (including search, filters and totals) and its product details can no longer be opened. *(Source: input "delete product"; clarification 2026-10-16)*
 - **BR-008:** The product list shows 20 products per page by default. *(Source: input)*
 - **BR-009:** The Admin can change the page size of the product list to 10, 20, 50 or 100; any other requested value falls back to 20. *(Source: input "default is 20"; clarification 2026-10-16)*
-- **BR-010:** The product list is ordered by date added, newest first. *(Source: assumption)*
+- **BR-010:** The product list is ordered by date added, newest first. *(Source: clarification 2026-10-16)*
 - **BR-011:** Every product has exactly one product status, Draft or Active. *(Source: clarification 2026-10-16)*
 - **BR-012:** The only allowed status change is Draft → Active (publish); an Active product never returns to Draft. *(Source: clarification 2026-10-16)*
 - **BR-029:** A newly added product always gets status Draft; the add and edit forms do not set the status. *(Source: clarification 2026-10-16)*
 - **BR-013:** Every product has a name, which is required and is 1 to 200 characters long. *(Source: clarification 2026-10-16)*
 - **BR-014:** Product information consists of exactly these fields: name, SKU, price and description. *(Source: clarification 2026-10-16)*
 - **BR-030:** Every product has a SKU, which is required, 1 to 50 characters long and unique among all products; uniqueness ignores letter case and leading/trailing spaces. *(Source: clarification 2026-10-16; case and space handling is an assumption)*
-- **BR-031:** Every product has a price, which is required, 0 or more, with at most 2 decimal places, in the shop's currency. *(Source: clarification 2026-10-16)*
+- **BR-031:** Every product has a price, which is required and is a whole number of Vietnamese dong (VND) from 0 to 1,000,000,000; a fractional or out-of-range price is rejected. *(Source: clarification 2026-10-16)*
+- **BR-050:** The shop uses a single currency, VND; prices are shown with a dot as thousands separator and the ₫ sign (e.g. 125.000 ₫). *(Source: clarification 2026-10-16; display format is an assumption)*
 - **BR-032:** A product's description is optional and at most 2,000 characters long. *(Source: clarification 2026-10-16)*
 - **BR-015:** Only the signed-in Admin can view, add, update, change status of or delete products. *(Source: constitution P1, P5)*
 - **BR-016:** After a product is added, its stock quantity changes only through a stock adjustment; the edit form does not show or change the stock quantity. *(Source: clarification 2026-10-16)*
-- **BR-033:** A stock adjustment adds or removes a whole number of units of 1 or more. *(Source: clarification 2026-10-16)*
-- **BR-034:** A stock adjustment that would bring the stock quantity below 0 is refused and the stock quantity is unchanged. *(Source: clarification 2026-10-16, follows from BR-003)*
+- **BR-033:** A stock adjustment adds or removes a whole number of units from 1 to 1,000,000. *(Source: clarification 2026-10-16)*
+- **BR-034:** A stock adjustment that would bring the stock quantity below 0 or above 1,000,000 is refused and the stock quantity is unchanged. *(Source: clarification 2026-10-16, follows from BR-003)*
 - **BR-035:** A stock adjustment is applied to the stored stock quantity at the moment it is saved, so two adjustments made close together both count. *(Source: assumption)*
 - **BR-036:** A product matches the search text when its name or SKU contains that text, ignoring letter case and leading/trailing spaces. *(Source: clarification 2026-10-16; matching rule is an assumption)*
 - **BR-037:** Search text is at most 100 characters; empty search text matches every product. *(Source: assumption)*
@@ -218,7 +220,7 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 - **BR-017:** When an add or update is rejected, nothing is saved and the Admin sees which field is invalid and why. *(Source: assumption; constitution P6)*
 - **BR-018:** Product details show all product information, the stock quantity and the product status. *(Source: input "viewing product information")*
 - **BR-019:** Each row of the product list shows the product's name, SKU, price, stock quantity and product status; the description appears only in the product details. *(Source: assumption, based on the fields fixed by clarification 2026-10-16)*
-- **BR-020:** When the requested page is beyond the last page, the product list shows the last existing page. *(Source: assumption)*
+- **BR-020:** When the requested page is beyond the last page, the product list shows the last existing page. *(Source: clarification 2026-10-16)*
 - **BR-021:** The product list shows the total number of products and of pages. *(Source: assumption)*
 - **BR-022:** When no products exist, the product list shows an empty-list message and a way to add a product. *(Source: assumption)*
 - **BR-023:** Returning from product details shows the product list at the page, search text, filters and sort order the Admin came from. *(Source: assumption)*
@@ -230,8 +232,8 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 ## Quality expectations
 
-- **QE-01:** 95% of product list pages (20 products, 10,000 stored, with or without search text, filters and sort order) are shown within 2 seconds of the Admin's action, measured in the browser. *(Volume and time are assumptions.)*
-- **QE-02:** 95% of adds, updates, stock adjustments, publishes, deletions and restores (10,000 products stored) are confirmed to the Admin within 1 second of the action, measured in the browser. *(Assumption.)*
+- **QE-01:** 95% of product list pages (20 products, 10,000 stored, with or without search text, filters and sort order) are shown within 2 seconds of the Admin's action, measured in the browser. *(Confirmed in clarification 2026-10-16.)*
+- **QE-02:** 95% of adds, updates, stock adjustments, publishes, deletions and restores (10,000 products stored) are confirmed to the Admin within 1 second of the action, measured in the browser. *(Confirmed in clarification 2026-10-16.)*
 - **QE-03:** 100% of product operations and product views are refused without a signed-in Admin session. *(Constitution P5.)*
 - **QE-04:** Moving between the product list, product details, the add form and the edit form causes 0 full page reloads, and the browser Back button returns to the previous view, including the product list page number, search text, filters and sort order. *(Input "SPA"; Back-button behavior is an assumption.)*
 - **QE-05:** 100% of invalid inputs are rejected at the boundary with a field-level message, and 0 invalid values are stored. *(Constitution P6.)*
@@ -247,12 +249,10 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 - The Admin is the only actor; there is no customer-facing part, so a product status only matters to the Admin and to the delete rule.
 - Stock quantity counts whole units; no units of measure, fractions or multiple warehouses.
-- The product list is ordered newest first by default (BR-010).
 - Deletion always asks for confirmation (BR-006).
-- Up to 10,000 products is the expected volume for QE-01 and QE-02.
+- Up to 10,000 products is the expected volume for QE-01 and QE-02 (confirmed in clarification 2026-10-16).
 - The Admin may have two browser tabs open; the last save wins, and an operation on a product deleted meanwhile reports "product not found".
 - No history of stock changes is kept in this initiative, and a stock adjustment does not record a reason.
-- The BG-01 target (under 1 minute per operation) is a starting point to be confirmed by the requester.
 - A chosen page size is not remembered between sessions (BL-07).
 
 ## Risks and dependencies
@@ -266,10 +266,10 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 | ID | Feature | Priority | Size | Depends on | Covers | Spec |
 |----|---------|----------|------|------------|--------|------|
-| BL-01 | Add a product | P1 | M | R002 (Admin sign-in) | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-045, BR-015, BR-017, BR-028, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
-| BL-02 | Paged product list | P1 | M | BL-01 | BG-01, BR-008, BR-010, BR-015, BR-019, BR-020, BR-021, BR-022, QE-01, QE-03, QE-04 | — |
-| BL-03 | View product details | P1 | S | BL-02 | BG-01, BR-014, BR-015, BR-018, BR-023, QE-03, QE-04 | — |
-| BL-04 | Update product information | P1 | M | BL-03 | BG-01, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-015, BR-016, BR-017, BR-026, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
+| BL-01 | Add a product | P1 | M | R002 (Admin sign-in) | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-050, BR-045, BR-015, BR-017, BR-028, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
+| BL-02 | Paged product list | P1 | M | BL-01 | BG-01, BR-008, BR-010, BR-015, BR-019, BR-050, BR-020, BR-021, BR-022, QE-01, QE-03, QE-04 | — |
+| BL-03 | View product details | P1 | S | BL-02 | BG-01, BR-014, BR-015, BR-018, BR-050, BR-023, QE-03, QE-04 | — |
+| BL-04 | Update product information | P1 | M | BL-03 | BG-01, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-050, BR-015, BR-016, BR-017, BR-026, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
 | BL-05 | Publish a product | P1 | S | BL-03 | BG-03, BR-011, BR-012, BR-015, QE-02, QE-03 | — |
 | BL-08 | Adjust stock | P1 | S | BL-03 | BG-01, BG-02, BR-003, BR-015, BR-016, BR-033, BR-034, BR-035, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
 | BL-06 | Delete a product | P1 | M | BL-03, BL-05, BL-08 | BG-01, BG-03, BR-004, BR-005, BR-006, BR-007, BR-044, BR-048, BR-015, BR-024, BR-025, QE-02, QE-03, QE-04 | — |
@@ -297,7 +297,7 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 - A request that includes a stock quantity (e.g. 50) → the value is ignored or rejected; the product is never stored with a stock quantity other than 1.
 - Admin leaves the name empty → rejected with a message on the name field.
 - Admin enters SKU "abc-1 " when "ABC-1" already exists → rejected with a message on the SKU field.
-- Admin enters price -1 or 9.999 → rejected with a message on the price field.
+- Admin enters price -1, 1500.5 or 1,000,000,001 → rejected with a message on the price field.
 - Request without a signed-in Admin session → refused.
 
 **Not included:** Listing products (BL-02), product details (BL-03), publishing (BL-05).
@@ -372,12 +372,13 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 
 **Actors:** Admin
 
-**Spec brief:** From the product details, the signed-in Admin adjusts the stock: chooses add or remove and enters a whole number of units of 1 or more. The system validates the input at the boundary, applies the adjustment to the stored stock quantity at that moment (BR-035), and shows the new stock quantity. A removal that would take the stock below 0 is refused with the current stock quantity shown; nothing changes. No reason or history is recorded.
+**Spec brief:** From the product details, the signed-in Admin adjusts the stock: chooses add or remove and enters a whole number of units from 1 to 1,000,000. The system validates the input at the boundary, applies the adjustment to the stored stock quantity at that moment (BR-035), and shows the new stock quantity. An adjustment that would take the stock below 0 or above 1,000,000 is refused with the current stock quantity shown; nothing changes. No reason or history is recorded.
 
 **Key scenarios:**
 - Stock 1, Admin adds 24 → stock 25.
 - Stock 25, Admin removes 25 → stock 0 (product is now out of stock).
 - Stock 3, Admin removes 5 → refused; message shows current stock 3; stock stays 3.
+- Stock 999,990, Admin adds 20 → refused; message shows current stock and the 1,000,000 limit; stock unchanged.
 - Admin enters 0, -2 or 1.5 units → rejected on the units field; stock unchanged.
 - Two adjustments (add 5, remove 2) saved close together from two tabs on stock 10 → stock 13.
 - Request without a signed-in Admin session → refused.
@@ -541,6 +542,7 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 | BR-047 | BL-12 |
 | BR-048 | BL-06 |
 | BR-049 | BL-01, BL-04, BL-08 |
+| BR-050 | BL-01, BL-02, BL-03, BL-04 |
 | QE-01 | BL-02, BL-09, BL-10, BL-11 |
 | QE-02 | BL-01, BL-04, BL-05, BL-06, BL-08, BL-12 |
 | QE-03 | BL-01, BL-02, BL-03, BL-04, BL-05, BL-06, BL-07, BL-08, BL-09, BL-10, BL-11, BL-12 |
@@ -558,7 +560,7 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 - [x] 7. Do you want search, filtering or sorting on the product list? (affects: BL-02, scope)
 - [x] 8. Can the Admin change the page size, and to which values? (affects: BR-009, BL-07)
 - [x] 9. Does "stocks default" mean the add form pre-fills the quantity with 1 but lets you change it (at least 1)? Or is it always exactly 1 when a product is added? (affects: BR-002, BL-01)
-- [ ] 10. Please confirm the targets and defaults: under 1 minute per operation, up to 10,000 products, list shown within 2 seconds, operations confirmed within 1 second; the list ordered newest first; a page beyond the last showing the last page. (affects: BG-01, QE-01, QE-02, BR-010, BR-020)
+- [x] 10. Please confirm the targets and defaults: under 1 minute per operation, up to 10,000 products, list shown within 2 seconds, operations confirmed within 1 second; the list ordered newest first; a page beyond the last showing the last page. (affects: BG-01, QE-01, QE-02, BR-010, BR-020)
 - [x] 11. If a save fails (network error, or the session expired mid-edit), should the form keep what the Admin entered so they can retry after signing in again? (affects: PR-01, PR-04, BL-01, BL-04)
 
 ## Clarification log
@@ -574,6 +576,9 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 | 2026-10-16 | Should deletion be permanent or recoverable? | Recoverable: a deleted product is hidden but kept, and can be restored from a deleted products list (new item BL-12). Its SKU stays reserved (assumption). |
 | 2026-10-16 | Can the Admin change the page size? | Yes: 10, 20, 50 or 100, default 20; any other value falls back to 20 (BL-07 kept). |
 | 2026-10-16 | What happens to entered values when a save fails? | The form stays open in the same tab with the values and an error, so the Admin can retry; nothing is stored elsewhere in the browser. |
+| 2026-10-16 | Which currency are prices in? | VND only; price is a whole number of dong, 0 or more (replaces the earlier "2 decimals"); shown like 125.000 ₫. |
+| 2026-10-16 | What upper limits apply to price and stock? | Price 0 – 1,000,000,000 ₫; stock quantity 0 – 1,000,000; one stock adjustment moves 1 – 1,000,000 units. |
+| 2026-10-16 | Are the targets and defaults acceptable? | Yes, all accepted: under 1 minute per operation; up to 10,000 products; list within 2 s and actions within 1 s (95th percentile); newest first by default; a page past the last shows the last page. |
 
 ## Revision history
 
