@@ -39,7 +39,7 @@
 - Locking sign-in after repeated failed sign-in attempts.
 - Signing out. *(Assumption: not in the input, nor required by P5; recommended for a shared computer.)*
 - Ending an Admin session after an idle timeout and a maximum session length, and letting the Admin sign in again without losing an open form (R001 BR-049).
-- Changing the Admin password while signed in. *(Pending Open question 2.)*
+- Changing the Admin password while signed in, at any time; it is never forced.
 - Recovering access when the password is forgotten, through the system operator and the setup values.
 
 ### Out of scope
@@ -58,7 +58,7 @@
 |------|------------|----------------|
 | Admin | The single person who signs in and manages products (constitution P1). Same as R001 | user, manager, operator, staff |
 | Admin account | The only account in the system: the Admin's sign-in name and password | user account, profile, login, user |
-| Sign-in name | What the Admin types to say who they are when signing in. [NEEDS CLARIFICATION: a username chosen at setup, or an email address?] | username, login, user ID, email (until decided) |
+| Sign-in name | What the Admin types to say who they are when signing in: a free-text name chosen by the system operator at Admin account setup. It is not an email address | username (in user-facing text), login, user ID, email |
 | Password | The secret the Admin types with the sign-in name. Stored only as a salted slow hash (P4) | passcode, PIN, credentials |
 | Initial password | The password given at Admin account setup | default password, temporary password |
 | Admin account setup | The one-time creation of the Admin account at system start, from setup values the system operator provides, outside the application | registration, sign-up, onboarding |
@@ -69,7 +69,7 @@
 | Admin session | The time during which the Admin is signed in, in one browser. It starts at sign-in and ends at sign-out, at expiry or at a password change | login, token, cookie, connection |
 | Signed-in Admin | The Admin while an Admin session is active. Same as R001 | logged-in user, authenticated user |
 | Sign out | End the current Admin session on purpose | log out, log off, disconnect |
-| Failed sign-in attempt | A sign-in where the sign-in name or the password does not match | wrong login, bad attempt, error |
+| Failed sign-in attempt | A sign-in, outside a lockout, where the sign-in name or the password does not match; also a password change with a wrong current password (BR-030). An attempt refused during a lockout is not one (BR-044) | wrong login, bad attempt, error |
 | Lockout | A period after repeated failed sign-in attempts during which every sign-in is refused | block, ban, suspension, account disabled |
 | Admin activity | An operation the Admin starts (opening a page, saving, signing out). Automatic requests made by the page itself do not count (BR-043) | usage, traffic |
 | Idle timeout | How long an Admin session survives with no Admin activity | inactivity limit, session timeout (alone) |
@@ -104,7 +104,7 @@
 - A field is empty or too long → rejected at the boundary with a message on the field. It does not count as a failed sign-in attempt (BR-035).
 - The same sign-in is submitted twice (double click) → at most one Admin session is started (BR-041).
 - Unknown sign-in name or wrong password → the same message either way. The sign-in name stays in the field, the password field is cleared, and the attempt counts as a failed sign-in attempt (BR-010, BR-016).
-- Sign-in is locked → refused even with the correct password. The page says when to try again (BR-016, BR-017).
+- Sign-in is locked → refused even with the correct password. The page says when to try again. The attempt is logged but does not extend the lockout (BR-016, BR-017, BR-044).
 - The Admin is already signed in and opens the sign-in page → the product management page is shown (BR-013).
 - The requested destination is outside the system → ignored, and the product management page is shown (BR-012).
 
@@ -165,9 +165,9 @@
 - **BR-002:** The Admin account is created by Admin account setup, outside the application: when the system starts and no Admin account exists, it creates the account from setup values (sign-in name and initial password) that the system operator puts in the environment the system runs in. Setup values never come from committed files, and there is no setup page or separate setup command. *(Source: constitution P1, P7; clarification 2026-10-16)*
 - **BR-003:** The system never creates an Admin account with a built-in or default password. If no Admin account exists and the setup values are missing or invalid, the system does not start, and it logs which setting is missing without its value. *(Source: constitution P7, P9; "does not start" is an assumption)*
 - **BR-004:** Once the Admin account exists, the setup values do not change it. The only exception is the explicit recovery of BR-033. *(Source: assumption)*
-- **BR-005:** The Admin signs in with a sign-in name and a password. The sign-in name is 1 to 100 characters long. [NEEDS CLARIFICATION: a username or an email address?] *(Source: input "sign in"; length is an assumption)*
+- **BR-005:** The Admin signs in with a sign-in name and a password. The sign-in name is a free-text name chosen by the system operator at setup, 1 to 100 characters long after leading and trailing spaces are removed. It does not need to be an email address, and no email format is checked. *(Source: input "sign in"; clarification 2026-10-16; length is an assumption)*
 - **BR-006:** Matching the sign-in name ignores letter case and leading/trailing spaces. The password must match exactly: case-sensitive, with spaces kept. *(Source: assumption)*
-- **BR-007:** A password is at least [NEEDS CLARIFICATION: minimum length, recommended 12] and at most 128 characters long. Any characters are allowed, and there are no composition rules. This applies at setup, at a change and at recovery. *(Source: assumption)*
+- **BR-007:** A password is at least 12 and at most 128 characters long. Any characters are allowed, and there are no composition rules. This applies at setup, at a change and at recovery. *(Source: clarification 2026-10-16)*
 - **BR-008:** The password is stored only as a salted slow hash, as constitution P4 requires. It is never stored, shown, logged or returned in readable form, and the password field is always masked. *(Source: constitution P4, P7)*
 - **BR-009:** A sign-in succeeds only when the sign-in name and the password both match the Admin account and sign-in is not locked (BR-016). *(Source: input; constitution P5)*
 - **BR-010:** A failed sign-in attempt shows the same message, for example "Sign-in name or password is incorrect", whether the sign-in name is unknown or the password is wrong. It does not say which one was wrong. The entered sign-in name stays and the password field is cleared. *(Source: assumption, security)*
@@ -177,22 +177,22 @@
 - **BR-014:** Every page and every operation requires a signed-in Admin session, except the sign-in page and the sign-in operation. Without a session, an operation is refused and returns no data or internal detail, and a page shows the sign-in page. This includes the health check and the OpenAPI document available in Development: they require a signed-in Admin session like every other operation. *(Source: constitution P5, P7; input "in order to perform action in R001"; R001 BR-015; clarification 2026-10-16)*
 - **BR-015:** The Admin may be signed in from several browsers at the same time, and each one has its own Admin session. *(Source: assumption; Open question 12)*
 - **BR-016:** After 5 failed sign-in attempts in a row, sign-in is locked for 15 minutes. The count and the lockout apply to the whole Admin account, whatever sign-in name was entered and wherever the attempts come from. During a lockout, every sign-in attempt is refused, even with the correct password. *(Source: constitution P5; clarification 2026-10-16)*
-- **BR-017:** During a lockout, the sign-in page says sign-in is temporarily locked and in how many minutes it can be tried again. *(Source: assumption)*
+- **BR-017:** From the failed sign-in attempt that starts a lockout and for every attempt during it, the sign-in page says sign-in is temporarily locked and in how many minutes it can be tried again. *(Source: assumption; clarification 2026-10-16)*
 - **BR-018:** The count of failed sign-in attempts in a row goes back to 0 after a successful sign-in and when a lockout ends. *(Source: assumption)*
 - **BR-019:** Every failed sign-in attempt and every lockout is logged with its time. The entered password is never logged. *(Source: constitution P7, P9; assumption)*
-- **BR-020:** An Admin session ends after [NEEDS CLARIFICATION: idle timeout, recommended 30 minutes] with no Admin activity. *(Source: assumption)*
-- **BR-021:** An Admin session ends at the latest [NEEDS CLARIFICATION: maximum session length, recommended 12 hours] after sign-in, even with activity. *(Source: assumption)*
+- **BR-020:** An Admin session ends after 30 minutes with no Admin activity (idle timeout). *(Source: clarification 2026-10-16)*
+- **BR-021:** An Admin session ends at the latest 12 hours after sign-in, even with activity (maximum session length). *(Source: clarification 2026-10-16)*
 - **BR-022:** There is no "keep me signed in" option. An Admin session also ends when the browser is closed. [NEEDS CLARIFICATION: confirm no "keep me signed in"] *(Source: assumption)*
 - **BR-023:** An ended session can never be used again. Every request made with it is refused, as in BR-014. *(Source: constitution P5)*
 - **BR-024:** When an operation is refused because the Admin session has ended, the Admin is told so and can sign in again without leaving the current view, so that an open form keeps its values as R001 BR-049 requires. [NEEDS CLARIFICATION: confirm a sign-in prompt over the current view rather than going to the sign-in page] *(Source: R001 BR-049; presentation is an assumption)*
 - **BR-025:** After signing in again (BR-024), the Admin stays on the same view. The refused operation is not repeated automatically; the Admin retries it. *(Source: R001 BR-049 "so the Admin can retry"; assumption)*
 - **BR-026:** The Admin can sign out from every page of the system except the sign-in page. *(Source: assumption)*
 - **BR-027:** Signing out ends the Admin session at once, with no confirmation, and shows the sign-in page. Other open tabs of the same browser are refused on their next action (BR-024). *(Source: assumption)*
-- **BR-028:** The signed-in Admin can change the password by entering the current password and the new password twice. *(Source: assumption; Open question 2)*
+- **BR-028:** The signed-in Admin can change the password at any time by entering the current password and the new password twice. *(Source: clarification 2026-10-16)*
 - **BR-029:** A password change is refused, the password is unchanged and the reason is shown when any of these is true: the current password is wrong, the two new entries differ, the new password breaks BR-007, or the new password is the same as the current one. *(Source: assumption)*
 - **BR-030:** A wrong current password in a password change counts as a failed sign-in attempt under BR-016. *(Source: assumption, security)*
 - **BR-031:** After a successful password change, every other Admin session ends and the current one stays active. *(Source: assumption)*
-- **BR-032:** [NEEDS CLARIFICATION: must the Admin replace the initial password at the first sign-in before reaching any other page? Recommended: no] *(Source: Open question 2)*
+- **BR-032:** The Admin is never forced to change the password, including the initial password at the first sign-in. After a successful sign-in the Admin goes straight to the page of BR-011. *(Source: clarification 2026-10-16)*
 - **BR-033:** There is no self-service password reset (no email, no security questions). A forgotten password is recovered only by the system operator: at system start, when the setup values contain an explicit reset indication and a new password, the system replaces the stored password, clears any lockout and ends every Admin session. *(Source: clarification 2026-10-16)*
 - **BR-034:** Every request, including the sign-in page and the sign-in operation, is accepted only over an encrypted connection, so neither passwords nor Admin sessions travel in plain text. A request over an unencrypted connection is refused. *(Source: constitution P4 "MUST NOT be transmitted in plain text", P5, P7)*
 - **BR-035:** Input rejected at the boundary (an empty or too-long field) is not a failed sign-in attempt and does not count toward a lockout. *(Source: assumption)*
@@ -204,6 +204,7 @@
 - **BR-041:** One sign-in submission starts at most one Admin session, even if it is sent twice. *(Source: assumption)*
 - **BR-042:** One password-change submission is processed once. A repeated submission of the same change is not counted as a failed sign-in attempt. *(Source: assumption, security)*
 - **BR-043:** Only Admin activity (an operation the Admin starts) resets the idle timeout of BR-020. Automatic requests made by the page itself, such as a check of whether the Admin is signed in, do not. *(Source: assumption)*
+- **BR-044:** A sign-in attempt made during a lockout is refused and logged with its time, but it is not counted as a failed sign-in attempt and does not extend the lockout: a lockout always ends 15 minutes after it began. *(Source: clarification 2026-10-16)*
 
 ## Quality expectations
 
@@ -241,7 +242,7 @@
 ## Risks and dependencies
 
 - **Lockout as denial of service:** a lockout for the whole account lets anyone who can reach the sign-in page keep the Admin locked out. → Accepted for the account-wide lockout (BR-016): it is short (15 minutes), and recovery through BL-07 clears it. Counting per account also hides whether a sign-in name exists and cannot be bypassed by changing source.
-- **Initial password left in the setup values:** it may stay readable in the environment after setup. → BR-004 ignores it once the account exists, the operator is told to remove it, and the Admin can change the password (BL-06). Open question 2 decides whether a change is forced.
+- **Initial password left in the setup values:** it may stay readable in the environment after setup. → BR-004 ignores it once the account exists, the operator is told to remove it, and the Admin can change the password (BL-06); a change is not forced (BR-032).
 - **Forgotten password with no recovery:** without BL-07, a forgotten password locks the Admin out for good. → BL-07 (operator reset through the setup values, BR-033).
 - **Reset indication left in the setup values:** every restart would reset the password again and end all sessions. → The operator is told to remove it after recovery (PR-07); the spec for BL-07 decides whether the system warns about it.
 - **Slow hash adds time to sign-in:** the hashing P4 requires takes noticeable time. → QE-01 allows 2 s.
@@ -258,7 +259,7 @@
 |----|---------|----------|------|------------|--------|------|
 | BL-01 | Admin account setup | P1 | S | — | BG-04, BR-001, BR-002, BR-003, BR-004, BR-005, BR-007, BR-008, QE-03 | — |
 | BL-02 | Sign in and protect every page | P1 | M | BL-01 | BG-01, BG-02, BG-04, BR-005, BR-006, BR-008, BR-009, BR-010, BR-011, BR-012, BR-013, BR-014, BR-015, BR-034, BR-035, BR-041, QE-01, QE-02, QE-03, QE-04, QE-06, QE-07, QE-08 | — |
-| BL-03 | Lock sign-in after failed attempts | P1 | S | BL-02 | BG-03, BR-016, BR-017, BR-018, BR-019, BR-040, QE-03, QE-04 | — |
+| BL-03 | Lock sign-in after failed attempts | P1 | S | BL-02 | BG-03, BR-016, BR-017, BR-018, BR-019, BR-040, BR-044, QE-03, QE-04 | — |
 | BL-04 | Sign out | P1 | S | BL-02 | BR-023, BR-026, BR-027, BR-039, QE-02, QE-05 | — |
 | BL-05 | Session expiry and signing in again | P1 | M | BL-02 | BR-020, BR-021, BR-022, BR-023, BR-024, BR-025, BR-038, BR-043, QE-05 | — |
 | BL-06 | Change password | P2 | S | BL-02, BL-03 | BG-04, BR-007, BR-008, BR-028, BR-029, BR-030, BR-031, BR-032, BR-034, BR-036, BR-042, QE-03, QE-05, QE-06, QE-07 | — |
@@ -266,7 +267,7 @@
 
 Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-slug` once `/sdd-ba-spec` creates the spec; `—` until then.
 
-The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5: an account, sign-in, protection by default, brute-force lockout, sign-out and session expiry. BL-01 to BL-05 are all built before R001 BL-01 (see Constraints). Spec numbers 001–012 are reserved by R001, so specs for this backlog start at 013. BL-06 may change priority or leave scope after Open question 2.
+The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5: an account, sign-in, protection by default, brute-force lockout, sign-out and session expiry. BL-01 to BL-05 are all built before R001 BL-01 (see Constraints). Spec numbers 001–012 are reserved by R001, so specs for this backlog start at 013.
 
 ### BL-01 — Admin account setup
 
@@ -280,7 +281,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 - No account, valid setup values → account created; the stored password is a hash with its own salt and the required iterations.
 - Same password set up twice on fresh systems → the two stored hashes differ.
 - No account, setup values missing → the system does not start; the log names the missing setting and contains no password.
-- Initial password shorter than the minimum → the system does not start; the log gives the reason without the value.
+- Initial password of 11 characters → the system does not start; the log gives the reason without the value.
 - Account exists and the setup values have a different password → account unchanged; the old password still works.
 
 **Not included:** Signing in (BL-02); changing the password (BL-06); recovery (BL-07).
@@ -311,11 +312,12 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** Admin, Unauthorised person
 
-**Spec brief:** The system counts failed sign-in attempts in a row for the whole Admin account, whatever sign-in name was entered and wherever the attempts come from. After 5 failures, sign-in is locked for 15 minutes, and every attempt is refused, even with the correct password (BR-016). The sign-in page says sign-in is locked and in how many minutes to try again (BR-017). The count goes back to 0 after a successful sign-in or when the lockout ends (BR-018). Every failure and lockout is logged with its time and never with the password (BR-019). The limit holds when many attempts arrive at the same time (BR-040).
+**Spec brief:** The system counts failed sign-in attempts in a row for the whole Admin account, whatever sign-in name was entered and wherever the attempts come from. After 5 failures, sign-in is locked for 15 minutes, and every attempt is refused, even with the correct password (BR-016). The sign-in page says sign-in is locked and in how many minutes to try again (BR-017). The count goes back to 0 after a successful sign-in or when the lockout ends (BR-018). The 5th failure already shows the lockout message (BR-017). Attempts during a lockout are refused and logged, but not counted and do not extend it (BR-044). Every failure and lockout is logged with its time and never with the password (BR-019). The limit holds when many attempts arrive at the same time (BR-040).
 
 **Key scenarios:**
 - 4 failures, then the correct password → signed in; the count goes back to 0.
-- 5 failures → locked; the correct password is refused with a "locked, try again in 15 minutes" message.
+- 5 failures → the 5th already shows "locked, try again in 15 minutes"; the correct password is then refused with the same message.
+- Attempts 10 minutes into a lockout → refused and logged; the lockout still ends 15 minutes after it began.
 - 15 minutes after the lockout began → the correct password works.
 - Failures with an unknown sign-in name → counted the same way as wrong passwords.
 - Failures from two different browsers → counted together toward the same lockout.
@@ -344,7 +346,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** Admin
 
-**Spec brief:** An Admin session ends after [NEEDS CLARIFICATION: 30 minutes] without activity and at the latest [NEEDS CLARIFICATION: 12 hours] after sign-in (BR-020, BR-021). There is no "keep me signed in" option (BR-022). When an operation is refused because the session has ended, the Admin is told so and can sign in again without leaving the current view. An open form keeps its values as R001 BR-049 requires (BR-024). After signing in again, the Admin stays on the same view and retries; nothing is resent automatically (BR-025). Closing the prompt keeps the view, and the next refused operation prompts again (BR-038). Only Admin activity resets the idle timeout (BR-043). [NEEDS CLARIFICATION: sign-in prompt over the current view, Open question 10]
+**Spec brief:** An Admin session ends after 30 minutes without activity and at the latest 12 hours after sign-in (BR-020, BR-021). There is no "keep me signed in" option (BR-022). When an operation is refused because the session has ended, the Admin is told so and can sign in again without leaving the current view. An open form keeps its values as R001 BR-049 requires (BR-024). After signing in again, the Admin stays on the same view and retries; nothing is resent automatically (BR-025). Closing the prompt keeps the view, and the next refused operation prompts again (BR-038). Only Admin activity resets the idle timeout (BR-043). [NEEDS CLARIFICATION: sign-in prompt over the current view, Open question 10]
 
 **Key scenarios:**
 - 31 minutes idle, then the Admin starts an operation on the product management page → refused with "session ended"; sign-in prompt shown over the same view; after signing in, the Admin retries it successfully.
@@ -360,7 +362,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** Admin
 
-**Spec brief:** The signed-in Admin opens the change password form and enters the current password and the new password twice (BR-028). The change is refused, with the reason and the password unchanged, if the current password is wrong, the new entries differ, the new password breaks BR-007, or it equals the current one (BR-029). A wrong current password counts toward the lockout (BR-030). On success, the new hash is stored (BR-008), every other Admin session ends, and the current one stays active (BR-031). During a lockout the change is refused (BR-036); a double-submitted change is processed once and not counted as a failure (BR-042). [NEEDS CLARIFICATION: forced change at first sign-in, BR-032]
+**Spec brief:** The signed-in Admin opens the change password form and enters the current password and the new password twice (BR-028). The change is refused, with the reason and the password unchanged, if the current password is wrong, the new entries differ, the new password breaks BR-007, or it equals the current one (BR-029). A wrong current password counts toward the lockout (BR-030). On success, the new hash is stored (BR-008), every other Admin session ends, and the current one stays active (BR-031). During a lockout the change is refused (BR-036); a double-submitted change is processed once and not counted as a failure (BR-042). The change is never forced, not even for the initial password (BR-032).
 
 **Key scenarios:**
 - Correct current password and a valid new password entered twice → changed; the old password no longer signs in.
@@ -436,6 +438,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 | BR-041 | BL-02 |
 | BR-042 | BL-06 |
 | BR-043 | BL-05 |
+| BR-044 | BL-03 |
 | QE-01 | BL-02 |
 | QE-02 | BL-02, BL-04 |
 | QE-03 | BL-01, BL-02, BL-03, BL-06, BL-07 |
@@ -448,19 +451,19 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 ## Open questions
 
 - [x] 1. How is the single Admin account first created, given that self-registration is forbidden (P1)? A) The system creates it at startup from setup values the system operator puts in the environment. B) A first-run setup page, which the first visitor could claim and which is an extra page without authentication. C) A separate command run outside the application. (affects: BR-002, BR-003, BR-004, BL-01)
-- [ ] 2. Is changing the password in scope, and must the initial password be replaced at the first sign-in? (affects: BR-028–BR-032, BL-06 priority, BL-02 if the change is forced)
+- [x] 2. Is changing the password in scope, and must the initial password be replaced at the first sign-in? (affects: BR-028–BR-032, BL-06 priority, BL-02 if the change is forced)
 - [x] 3. How does the Admin recover a forgotten password? A) The system operator resets it through the setup values. B) Not supported. C) Email reset, which needs an architecture change. (affects: BR-033, BL-07)
 - [x] 4. The existing health check, and the OpenAPI document mapped in Development, answer without a session, which conflicts with P5. Require a session for them, remove them, or amend the constitution to allow them? (affects: BR-014, BL-02)
 - [x] 5. Lockout: how many failed sign-in attempts, how long a lockout, and does it apply to the whole account or per source of the attempts? (affects: BR-016, BG-03, BL-03)
-- [ ] 6. Idle timeout and maximum session length? (affects: BR-020, BR-021, BL-05)
+- [x] 6. Idle timeout and maximum session length? (affects: BR-020, BR-021, BL-05)
 - [ ] 7. Is a "keep me signed in" option wanted, or does closing the browser end the session? (affects: BR-022, BL-05)
-- [ ] 8. Is the sign-in name a username chosen at setup or an email address? (affects: BR-005, glossary, BL-01, BL-02)
-- [ ] 9. Minimum password length (recommended 12, maximum 128, no composition rules)? (affects: BR-007, BL-01, BL-06, BL-07)
+- [x] 8. Is the sign-in name a username chosen at setup or an email address? (affects: BR-005, glossary, BL-01, BL-02)
+- [x] 9. Minimum password length (recommended 12, maximum 128, no composition rules)? (affects: BR-007, BL-01, BL-06, BL-07)
 - [ ] 10. When the session has ended mid-work, should signing in again happen in a prompt over the current view, keeping the form (R001 BR-049), or on the sign-in page? (affects: BR-024, BR-025, BL-05)
 - [ ] 11. After sign-in, show the requested page or always the product management page? (affects: BR-011, BL-02)
 - [ ] 12. May the Admin be signed in from several browsers at once? (affects: BR-015, BR-031, BL-02, BL-06)
 - [x] 13. Build order with R001 (review finding, critical). R001 needs R002 first, but some R002 scenarios rely on R001 pages and forms. Recommended: R002 BL-02 delivers an empty, protected product management page (layout with sign-out) that R001 BL-02 fills in; R002 scenarios use only that page; checking that "the add form keeps its values" stays with R001 BL-01, BL-04 and BL-08 (R001 BR-049); and all R002 P1 items (BL-01 to BL-05) are built before R001 BL-01. Alternative: build only R002 BL-01 and BL-02 first, and BL-03 to BL-05 after R001 BL-01. (affects: Constraints, Risks, Backlog note, BL-02, BL-04, BL-05 scenarios)
-- [ ] 14. Attempts during a lockout: are they counted, do they extend the lockout, are they logged, and does the attempt that triggers the lockout already show the lockout message? Recommended: not counted, no extension, logged; the Nth failure shows the lockout message. Should a wrong current password in a password change be part of the "Failed sign-in attempt" definition? (affects: BR-016, BR-018, BG-03, glossary, BL-03)
+- [x] 14. Attempts during a lockout: are they counted, do they extend the lockout, are they logged, and does the attempt that triggers the lockout already show the lockout message? Recommended: not counted, no extension, logged; the Nth failure shows the lockout message. Should a wrong current password in a password change be part of the "Failed sign-in attempt" definition? (affects: BR-016, BR-018, BG-03, glossary, BL-03)
 - [ ] 15. What does a system restart do to Admin sessions and to an active lockout? Recommended: the lockout survives a restart (only recovery clears it); state whether sessions survive. (affects: BR-016, BR-020, BR-021, BR-033, R001 BR-049, BL-03, BL-05, BL-07)
 - [ ] 16. Logging: may the entered sign-in name be logged with a failed sign-in attempt (it may contain a password typed in the wrong field)? Are successful sign-ins, sign-outs, password changes and recoveries logged too? (affects: BR-019, QE-03, BL-03)
 - [ ] 17. Should the system log a warning (without the value) at startup when the Admin account exists but the initial password is still present in the setup values? (affects: BR-004, BG-04, BL-01)
@@ -473,6 +476,11 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 | 2026-10-16 | Q1: how the Admin account is first created | At system start, when no Admin account exists, from setup values in the environment; no setup page, no separate command |
 | 2026-10-16 | Q4: health check and Development OpenAPI document vs. P5 | Both require a signed-in Admin session; no constitution amendment |
 | 2026-10-16 | Q5: lockout threshold, duration and scope | 5 failed attempts in a row lock sign-in for 15 minutes, for the whole Admin account regardless of source |
+| 2026-10-16 | Q2: password change in scope, forced or not | In scope (BL-06, P2) at any time while signed in; never forced, not even for the initial password at first sign-in |
+| 2026-10-16 | Q8: sign-in name a username or an email | A free-text name chosen by the system operator at setup (1–100 characters); not an email address, no email format check |
+| 2026-10-16 | Q9: minimum password length | 12 to 128 characters, any characters, no composition rules; at setup, change and recovery |
+| 2026-10-16 | Q6: idle timeout and maximum session length | 30 minutes without Admin activity; 12 hours after sign-in at the latest, even with activity |
+| 2026-10-16 | Q14: attempts during and at a lockout | Refused and logged, not counted, never extend the lockout (fixed 15 minutes); the 5th failure already shows the lockout message; a wrong current password in a password change is a failed sign-in attempt |
 | 2026-10-16 | Q3: recovering a forgotten password | The system operator puts a reset indication and a new password in the setup values and restarts; the system replaces the password, clears any lockout and ends every Admin session; no self-service or email reset |
 
 ## Revision history
