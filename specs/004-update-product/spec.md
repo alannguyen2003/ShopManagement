@@ -48,7 +48,7 @@ As the Admin, I want invalid changes rejected field by field so that I never sto
 6. **Given** the edit form, **When** the Admin clears the price and saves, **Then** the save is rejected with a message on the price field saying a price is required.
 7. **Given** the edit form, **When** the Admin enters a description of 2,001 characters, **Then** the save is rejected with a message on the description field; 2,000 characters are accepted.
 8. **Given** the edit form, **When** the Admin empties the name and enters price -1 and saves, **Then** both fields show their reason at the same time and nothing is saved.
-9. **Given** a product with stock quantity 12 (seeded test data until 006 exists) and status Draft, **When** a save request also carries a stock quantity of 50 and status Active, **Then** the stock quantity stays 12 and the status stays Draft [NEEDS CLARIFICATION: is such a save rejected as invalid, or are the extra values ignored and the product information saved? Must match 001-add-product open question 1].
+9. **Given** a product with stock quantity 12 (seeded test data until 006 exists) and status Draft, **When** a save request also carries a stock quantity of 50 and status Active, **Then** the save is rejected with a message naming the unexpected fields, nothing is saved, and the stock quantity stays 12 and the status stays Draft.
 
 ### US3 — Recover from a failed or outdated save (Priority: P2)
 
@@ -61,7 +61,7 @@ As the Admin, I want a failed save to keep what I typed, and a save on a product
 **Acceptance scenarios:**
 1. **Given** the edit form with the name changed to "Blue Mug Large", **When** the save fails because of a network error, **Then** the Admin is told the change was not saved, the form stays open in the same tab with "Blue Mug Large" still entered, and the stored product is unchanged.
 2. **Given** the save failed as in scenario 1, **When** the Admin saves again after the connection returns, **Then** the change is saved and the updated product details are shown.
-3. **Given** the edit form with changed values, **When** the save fails because the Admin's session has expired, **Then** the Admin is told the change was not saved and must sign in again, the form stays open with the entered values, and the stored product is unchanged. [NEEDS CLARIFICATION: how the Admin signs in again without losing the form; see Open questions]
+3. **Given** the edit form with changed values, **When** the save fails because the Admin's session has expired, **Then** the stored product is unchanged, the form stays open with the entered values, and a sign-in prompt appears over the form. **When** the Admin signs in through that prompt, **Then** the edit form is shown again with the entered values, and pressing Save saves them.
 4. **Given** the edit form of "Blue Mug" is open (applies once 007-delete-product exists), **When** the product is deleted in another tab and the Admin then saves, **Then** the Admin sees "product not found" with a way back to the product list, and nothing is saved.
 5. **Given** the edit form of a product with stock quantity 12 and status Draft is open (applies once 005-publish-product and 006-adjust-stock exist), **When** the stock is adjusted to 20 and the product is published in another tab, and the Admin then saves a new name, **Then** the product has the new name, stock quantity 20 and status Active.
 6. **Given** the same product is open in the edit form in two tabs, **When** tab A saves the price 150000 and then tab B saves the price 160000, **Then** the stored price is 160.000 ₫ (last save wins, BR-026).
@@ -83,7 +83,7 @@ As the Admin, I want a failed save to keep what I typed, and a save on a product
 - Connection lost during save: the form keeps the entered values and shows an error, and the stored product is unchanged (BR-049).
 - Session expired before the edit form is opened: the form is not shown, and the Admin must sign in (R002).
 - Session expired during save: the form keeps the entered values, and the save is refused (BR-049, BR-015).
-- A save request that carries a stock quantity, a product status or unknown fields: the stock quantity and status are unchanged (BR-016, BR-029).
+- A save request that carries a stock quantity, a product status or unknown fields: rejected with a message naming the unexpected field; nothing is saved (FR-012, BR-016, BR-029).
 - The Admin cancels or navigates away with unsaved changes: [NEEDS CLARIFICATION: whether to confirm before discarding; see Open questions]
 
 ## Functional requirements
@@ -95,15 +95,15 @@ As the Admin, I want a failed save to keep what I typed, and a save on a product
 - **FR-005:** The system MUST require a name of 1 to 200 characters (BR-013).
 - **FR-006:** The system MUST require a SKU of 1 to 50 characters. The SKU MUST NOT equal the SKU of any other product; the comparison ignores letter case and leading/trailing spaces. The product's own current SKU never counts as a conflict (BR-030).
 - **FR-007:** The SKU uniqueness check MUST include deleted products, so a SKU kept by a deleted product cannot be given to another product (BR-045). This applies once deletion exists (007-delete-product / BL-06).
-- **FR-008:** The system MUST require a price that is a whole number of Vietnamese dong from 0 to 1,000,000,000. It MUST reject a missing, non-numeric, fractional or out-of-range price (BR-031). [NEEDS CLARIFICATION: price entry format in the form; see Open questions]
+- **FR-008:** The system MUST require a price that is a whole number of Vietnamese dong from 0 to 1,000,000,000. It MUST reject a missing, non-numeric, fractional or out-of-range price (BR-031). The price field follows the same input rule as the add form (001-add-product FR-006a): only digits can be typed, they are shown grouped with a dot every three digits while typing (e.g. "150.000"), and pasted text is accepted only as digits with correctly placed dots.
 - **FR-009:** The description MUST be optional, at most 2,000 characters long, and the Admin MUST be able to clear it (BR-032).
 - **FR-010:** When a save is rejected, the system MUST keep the stored product unchanged. It MUST show, next to each invalid field, the reason that field is invalid, with all invalid fields reported together (BR-017).
 - **FR-011:** A successful save MUST show the updated product details with a confirmation that the changes were saved (PR-04). The price is shown in VND with a dot as thousands separator and the ₫ sign, e.g. 150.000 ₫ (BR-050).
-- **FR-012:** Saving product information MUST NOT change the product's stock quantity or product status, whatever the save request carries. It MUST NOT overwrite a stock quantity or status that changed since the edit form was opened (BR-016, BR-029).
+- **FR-012:** Saving product information MUST NOT change the product's stock quantity or product status. A save request that carries any field other than the product information (for example a stock quantity, a product status or an unknown field) MUST be rejected with a message naming the unexpected field, and nothing is saved (constitution P6; same rule as 001-add-product FR-009). It MUST NOT overwrite a stock quantity or status that changed since the edit form was opened (BR-016, BR-029).
 - **FR-013:** When the same product is saved from two places, the system MUST keep the product information of the last save, without a conflict warning (BR-026).
 - **FR-014:** When the product does not exist or has been deleted, opening the edit form or saving MUST show "product not found" with a way back to the product list. Nothing is saved (PR-04 exception, BR-048).
 - **FR-015:** When the Admin cancels the edit form, the system MUST save nothing and show the product details with the stored values (PR-04 exception). [NEEDS CLARIFICATION: confirm before discarding unsaved changes?]
-- **FR-016:** When a save fails because of a network error or an expired session, the system MUST tell the Admin the change was not saved. The form MUST stay open in the same tab with the entered values so the Admin can retry, after signing in again if needed. The entered values MUST NOT be stored anywhere else in the browser (BR-049). [NEEDS CLARIFICATION: re-sign-in path that keeps the form; see Open questions]
+- **FR-016:** When a save fails because of a network error or an expired session, the system MUST tell the Admin the change was not saved. The form MUST stay open in the same tab with the entered values so the Admin can retry, after signing in again if needed. The entered values MUST NOT be stored anywhere else in the browser (BR-049). When the cause is an expired session, a sign-in prompt MUST appear over the edit form; after the Admin signs in through it, the edit form MUST still hold the entered values so the Admin can save again (same as 001-add-product FR-015; R002 provides the prompt).
 - **FR-017:** Opening the edit form and saving product information MUST be refused without a signed-in Admin session (BR-015).
 - **FR-018:** Moving between the product details and the edit form MUST NOT reload the whole page. The browser Back button from the edit form MUST return to the product details (QE-04).
 
@@ -176,15 +176,18 @@ As the Admin, I want a failed save to keep what I typed, and a save on a product
 
 ## Open questions
 
-- [ ] 1. Price entry format: BR-050 shows prices with a dot as thousands separator (125.000 ₫). In the price field, may the Admin type "125.000", and is it read as 125,000 ₫? Or are only plain digits ("125000") accepted, with "125.000" rejected? The answer must match the add form (001-add-product). (affects: FR-008, US1 scenario 1, US2 scenario 5)
+- [x] 1. Price entry format: BR-050 shows prices with a dot as thousands separator (125.000 ₫). In the price field, may the Admin type "125.000", and is it read as 125,000 ₫? Or are only plain digits ("125000") accepted, with "125.000" rejected? The answer must match the add form (001-add-product). (affects: FR-008, US1 scenario 1, US2 scenario 5)
 - [ ] 2. When the Admin cancels or navigates away (including with Back) while the edit form has unsaved changes, should the system ask for confirmation before discarding them, or discard them silently? (affects: FR-015, FR-018, NFR-004)
-- [ ] 3. When a save fails because the session expired, how does the Admin sign in again without losing the form? BR-049 forbids storing the values elsewhere in the browser. Is it an in-place sign-in that R002 must provide, or does the Admin sign in in another tab and then retry here? (affects: FR-016, US3 scenario 3; dependency on R002)
-- [ ] 4. A save request that carries a stock quantity, a product status or unknown fields: reject it as invalid with a message, or ignore those values and save the product information? Either way the stock quantity and status never change (FR-012). The answer must match 001-add-product open question 1. Recommended: reject, so invalid input is refused at the boundary (constitution P6). (affects: US2 scenario 9, FR-012, NFR-005)
+- [x] 3. When a save fails because the session expired, how does the Admin sign in again without losing the form? BR-049 forbids storing the values elsewhere in the browser. Is it an in-place sign-in that R002 must provide, or does the Admin sign in in another tab and then retry here? (affects: FR-016, US3 scenario 3; dependency on R002)
+- [x] 4. A save request that carries a stock quantity, a product status or unknown fields: reject it as invalid with a message, or ignore those values and save the product information? Either way the stock quantity and status never change (FR-012). The answer must match 001-add-product open question 1. Recommended: reject, so invalid input is refused at the boundary (constitution P6). (affects: US2 scenario 9, FR-012, NFR-005)
 
 ## Clarification log
 
 | Date | Question | Decision |
 |------|----------|----------|
+| 2026-10-16 | Save request carrying stock quantity, status or unknown fields: reject or ignore? | Reject the whole request with a message naming the unexpected field; nothing saved (decided with 001-add-product). |
+| 2026-10-16 | How may the Admin type a price? | Digits only, formatted with a dot every three digits while typing; pasted text accepted only as digits with correctly placed dots (decided with 001-add-product). |
+| 2026-10-16 | How does the Admin sign in again after the session expires with the edit form open? | A sign-in prompt appears over the form; after signing in, the form still holds the entered values (decided with 001-add-product; R002 provides the prompt). |
 
 ## Revision history
 
