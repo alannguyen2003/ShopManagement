@@ -266,7 +266,7 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 | ID | Feature | Priority | Size | Depends on | Covers | Spec |
 |----|---------|----------|------|------------|--------|------|
-| BL-01 | Add a product | P1 | M | R002 (Admin sign-in) | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-050, BR-045, BR-015, BR-017, BR-028, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
+| BL-01 | Add a product | P1 | M | — | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-050, BR-045, BR-015, BR-017, BR-028, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
 | BL-02 | Paged product list | P1 | M | BL-01 | BG-01, BR-008, BR-010, BR-015, BR-019, BR-050, BR-020, BR-021, BR-022, QE-01, QE-03, QE-04 | — |
 | BL-03 | View product details | P1 | S | BL-02 | BG-01, BR-014, BR-015, BR-018, BR-050, BR-023, QE-03, QE-04 | — |
 | BL-04 | Update product information | P1 | M | BL-03 | BG-01, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-050, BR-015, BR-016, BR-017, BR-026, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
@@ -281,7 +281,7 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-slug` once `/sdd-ba-spec` creates the spec; `—` until then.
 
-**Every item depends on Admin sign-in** (constitution P5), delivered by the separate requirements document R002; BL-01 lists it explicitly and the others inherit it through BL-01. P1 items BL-01 to BL-06 and BL-08 form the MVP (BL-08 was added during clarification and is listed before BL-06, which depends on it). BL-09 to BL-12 were added during clarification; their priorities (search, filter and restore P2, sort P3) are an assumption. Each one alone works with the others not yet built; once several exist they combine (BR-041).
+**Every item depends on Admin sign-in** (constitution P5), delivered by the separate requirements document R002 (outside this backlog, so it is not in the `Depends on` column). R002 must be built before BL-01; every other item inherits the dependency through BL-01. P1 items BL-01 to BL-06 and BL-08 form the MVP (BL-08 was added during clarification and is listed before BL-06, which depends on it). BL-09 to BL-12 were added during clarification; their priorities (search, filter and restore P2, sort P3) are an assumption. Each one alone works with the others not yet built; once several exist they combine (BR-041).
 
 ### BL-01 — Add a product
 
