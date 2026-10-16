@@ -3,7 +3,8 @@
 **Feature:** 001-add-product
 **Branch:** feat/001-add-product
 **Source:** R001/BL-01
-**Status:** Draft
+**Status:** Approved
+**Approved:** 2026-10-16
 **Revision:** 1
 **Created:** 2026-10-16
 
