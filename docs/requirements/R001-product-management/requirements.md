@@ -267,18 +267,18 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 | ID | Feature | Priority | Size | Depends on | Covers | Spec |
 |----|---------|----------|------|------------|--------|------|
-| BL-01 | Add a product | P1 | M | — | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-050, BR-045, BR-015, BR-017, BR-028, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
-| BL-02 | Paged product list | P1 | M | BL-01 | BG-01, BR-008, BR-010, BR-015, BR-019, BR-050, BR-020, BR-021, BR-022, QE-01, QE-03, QE-04 | — |
-| BL-03 | View product details | P1 | S | BL-02 | BG-01, BR-014, BR-015, BR-018, BR-050, BR-023, QE-03, QE-04 | — |
-| BL-04 | Update product information | P1 | M | BL-03 | BG-01, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-050, BR-015, BR-016, BR-017, BR-026, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
-| BL-05 | Publish a product | P1 | S | BL-03 | BG-03, BR-011, BR-012, BR-015, QE-02, QE-03 | — |
-| BL-08 | Adjust stock | P1 | S | BL-03 | BG-01, BG-02, BR-003, BR-015, BR-016, BR-033, BR-034, BR-035, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
-| BL-06 | Delete a product | P1 | M | BL-03, BL-05, BL-08 | BG-01, BG-03, BR-004, BR-005, BR-006, BR-007, BR-044, BR-048, BR-015, BR-024, BR-025, QE-02, QE-03, QE-04 | — |
-| BL-07 | Choose product list page size | P2 | S | BL-02 | BR-009, BR-015, BR-027, QE-03, QE-04 | — |
-| BL-09 | Search products by name or SKU | P2 | S | BL-02 | BG-01, BR-015, BR-036, BR-037, BR-041, BR-042, BR-043, QE-01, QE-03, QE-04, QE-05 | — |
-| BL-10 | Filter products by status and stock | P2 | S | BL-02, BL-05, BL-08 | BR-015, BR-038, BR-039, BR-041, BR-042, BR-043, QE-01, QE-03, QE-04, QE-05 | — |
-| BL-11 | Sort the product list | P3 | S | BL-02 | BR-010, BR-015, BR-040, BR-041, BR-042, QE-01, QE-03, QE-04, QE-05 | — |
-| BL-12 | View and restore deleted products | P2 | M | BL-06 | BR-015, BR-044, BR-045, BR-046, BR-047, QE-02, QE-03, QE-04 | — |
+| BL-01 | Add a product | P1 | M | — | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-050, BR-045, BR-015, BR-017, BR-028, BR-049, QE-02, QE-03, QE-04, QE-05 | 001-add-product |
+| BL-02 | Paged product list | P1 | M | BL-01 | BG-01, BR-008, BR-010, BR-015, BR-019, BR-050, BR-020, BR-021, BR-022, QE-01, QE-03, QE-04 | 002-product-list |
+| BL-03 | View product details | P1 | S | BL-02 | BG-01, BR-014, BR-015, BR-018, BR-050, BR-023, QE-03, QE-04 | 003-product-details |
+| BL-04 | Update product information | P1 | M | BL-03 | BG-01, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-050, BR-015, BR-016, BR-017, BR-026, BR-049, QE-02, QE-03, QE-04, QE-05 | 004-update-product |
+| BL-05 | Publish a product | P1 | S | BL-03 | BG-03, BR-011, BR-012, BR-015, QE-02, QE-03 | 005-publish-product |
+| BL-08 | Adjust stock | P1 | S | BL-03 | BG-01, BG-02, BR-003, BR-015, BR-016, BR-033, BR-034, BR-035, BR-049, QE-02, QE-03, QE-04, QE-05 | 006-adjust-stock |
+| BL-06 | Delete a product | P1 | M | BL-03, BL-05, BL-08 | BG-01, BG-03, BR-004, BR-005, BR-006, BR-007, BR-044, BR-048, BR-015, BR-024, BR-025, QE-02, QE-03, QE-04 | 007-delete-product |
+| BL-07 | Choose product list page size | P2 | S | BL-02 | BR-009, BR-015, BR-027, QE-03, QE-04 | 008-list-page-size |
+| BL-09 | Search products by name or SKU | P2 | S | BL-02 | BG-01, BR-015, BR-036, BR-037, BR-041, BR-042, BR-043, QE-01, QE-03, QE-04, QE-05 | 009-product-search |
+| BL-10 | Filter products by status and stock | P2 | S | BL-02, BL-05, BL-08 | BR-015, BR-038, BR-039, BR-041, BR-042, BR-043, QE-01, QE-03, QE-04, QE-05 | 010-product-filters |
+| BL-11 | Sort the product list | P3 | S | BL-02 | BR-010, BR-015, BR-040, BR-041, BR-042, QE-01, QE-03, QE-04, QE-05 | 012-product-sorting |
+| BL-12 | View and restore deleted products | P2 | M | BL-06 | BR-015, BR-044, BR-045, BR-046, BR-047, QE-02, QE-03, QE-04 | 011-restore-products |
 
 Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-slug` once `/sdd-ba-spec` creates the spec; `—` until then.
 
