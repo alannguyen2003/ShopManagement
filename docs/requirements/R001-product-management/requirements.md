@@ -9,7 +9,7 @@
 
 ## Context
 
-The shop Admin needs one place to keep the shop's products and how many of each are in stock. Today the system has no product capability at all. The requester asked for five capabilities: add a product with a starting stock quantity, update product information, delete a product (only when it is in Draft status or its stock quantity is 0), view one product, and view a paged product list (20 per page by default). All of this happens on the product management page, which works as a single-page application. Success means the Admin can keep the product list complete and current without help, and cannot delete a product that is live and still in stock.
+The shop Admin needs one place to keep the shop's products and how many of each are in stock. Today the system has no product capability at all. The requester asked for five capabilities: add a product with a starting stock quantity, update product information, delete a product (only when it is in Draft status or its stock quantity is 0), view one product, and view a paged product list (20 per page by default). All of this happens on the product management page, which works as a single-page application. Success means the Admin can keep the product list complete and current without help, and cannot delete an Active product that is still in stock.
 
 ## Stakeholders and actors
 
@@ -22,26 +22,27 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 - **BG-01:** The Admin can add, view, update and delete any product from the product management page without outside help, and each single operation takes under 1 minute. *(Target is an assumption, to be confirmed.)*
 - **BG-02:** Every product in the system has a recorded stock quantity: 100% of products have a whole-number quantity of 0 or more at all times.
-- **BG-03:** No product that is out of Draft and still in stock gets deleted: 0 such deletions.
+- **BG-03:** No Active product that is still in stock gets deleted: 0 such deletions.
 
 ## Scope
 
 ### In scope
 
-- Adding a product with its product information and a starting stock quantity.
+- Adding a product with its product information; its stock quantity always starts at 1.
 - Viewing the product list, paged, 20 products per page by default.
 - Viewing the details of one product.
-- Updating product information, including the stock quantity [NEEDS CLARIFICATION: is stock changed in the update form or by a separate stock adjustment? see Open questions].
-- Changing a product's status *(assumption: inferred from the Draft delete condition; not one of the five capabilities requested)* [NEEDS CLARIFICATION: which statuses and transitions exist, and is status set in the add/edit form or by a separate action? see Open questions].
+- Updating product information (name, SKU, price, description).
+- Adjusting a product's stock quantity through a separate stock adjustment (add or remove units).
+- Publishing a product: moving it from Draft to Active through a separate action (the Draft delete condition needs a way out of Draft).
 - Deleting a product that is in Draft status or has a stock quantity of 0.
 - Choosing a different page size for the product list [NEEDS CLARIFICATION: is page size changeable at all?].
 
 ### Out of scope
 
-- Admin sign-in / authentication. The constitution (P5) requires it before any product feature can be used, but the input does not ask for it. It is handled outside this backlog unless decided otherwise (see Open questions and Risks).
+- Admin sign-in / authentication. The constitution (P5) requires it before any product feature can be used; it is delivered by a separate requirements document, R002 (Admin sign-in), which this backlog depends on.
 - A customer-facing storefront, orders, sales and automatic stock deduction: not requested.
 - Searching, filtering and sorting the product list: not requested (see Open questions; could be added as a P2 item).
-- Product categories and product images: not requested (see Open questions on product fields).
+- Product categories and product images: not requested; product information is limited to name, SKU, price and description.
 - Stock movement history, audit trail, low-stock alerts: not requested.
 - Bulk operations, import/export: not requested.
 - Several user accounts or roles: forbidden by constitution P1.
@@ -52,12 +53,17 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 |------|------------|----------------|
 | Admin | The single person who signs in and manages products (constitution P1) | user, manager, operator, staff |
 | Product | Something the shop sells and keeps stock of, with its product information, stock quantity and product status | item, article, goods, SKU (as a synonym for the whole product) |
-| Product information | The descriptive fields of a product [NEEDS CLARIFICATION: exact field list], excluding stock quantity and product status | product data, product details (for the fields) |
+| Product information | The descriptive fields of a product: name, SKU, price and description; excludes stock quantity and product status | product data, product details (for the fields) |
+| SKU | The shop's unique code for a product (stock keeping unit) | code, reference, barcode, ID |
+| Price | The selling price of one unit of a product, in the shop's currency | cost, amount, rate |
 | Stock quantity | Whole number of units of a product the shop has, 0 or more | stock level, inventory count, qty, amount |
-| Starting stock quantity | The stock quantity entered when a product is added; at least 1 | default stock, initial inventory |
+| Starting stock quantity | The stock quantity a product gets when it is added: always exactly 1, not entered by the Admin | default stock, initial inventory |
 | Out of stock | A product whose stock quantity is 0 | sold out, empty |
-| Product status | Where a product is in its lifecycle; Draft is the only state named by the requester [NEEDS CLARIFICATION: other states] | state, publish state, visibility |
-| Draft | A product status meaning the product is not yet in use [NEEDS CLARIFICATION: exact meaning] | unpublished, pending, inactive |
+| Stock adjustment | An action that adds a number of units to, or removes a number of units from, a product's stock quantity | stock update, restock, stock edit |
+| Product status | Where a product is in its lifecycle: Draft or Active | state, publish state, visibility |
+| Draft | The product status of a newly added product that has not been published yet | unpublished, pending, inactive |
+| Active | The product status of a published product; a product never goes back from Active to Draft | live, published, enabled |
+| Publish (a product) | Move a product from Draft to Active | activate, release, go live |
 | Product list | The paged list of all products shown on the product management page | catalogue, inventory list, grid |
 | Page size | Number of products shown on one page of the product list; 20 by default | page length, limit |
 | Product details | The view showing all product information, the stock quantity and the product status of one product | product page, product info view |
@@ -69,15 +75,14 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 ### PR-01 — Add a product
 
 1. The Admin opens the add form from the product management page.
-2. The system shows the form with the starting stock quantity pre-filled with 1.
-3. The Admin enters the product information and, optionally, changes the starting stock quantity.
+2. The system shows the form with the product information fields; it has no stock quantity field.
+3. The Admin enters the product information.
 4. The Admin saves.
-5. The system checks the input, saves the product with status [NEEDS CLARIFICATION: Draft, or chosen by the Admin?] and shows a success confirmation with the saved values.
+5. The system checks the input, saves the product with stock quantity 1 and status Draft, and shows a success confirmation with the saved values.
 
 **Exceptions:**
-- Starting stock quantity is less than 1, not a whole number, or missing → the system rejects the save, saves nothing and shows the reason next to the field.
 - A required field is missing or invalid → the system rejects the save, saves nothing and shows the reason next to each invalid field.
-- [NEEDS CLARIFICATION: a product with the same identifying value already exists (e.g. same SKU or name) → rejected?]
+- The SKU is already used by another product → the system rejects the save, saves nothing and shows the reason next to the SKU field (BR-030).
 - The Admin cancels → nothing is saved; the system returns to the product management page.
 - The Admin clicks Save twice → at most one product is created (BR-028).
 - The save fails (network error or expired session) → the Admin is told the product was not saved [NEEDS CLARIFICATION: is the entered data kept? see Open question 11].
@@ -105,23 +110,37 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 ### PR-04 — Update a product
 
 1. From the product details, the Admin opens the edit form.
-2. The system shows the form filled with the current product information and stock quantity.
+2. The system shows the form filled with the current product information; it has no stock quantity or status field.
 3. The Admin changes values and saves.
 4. The system checks the input, saves the changes and shows the updated product details.
 
 **Exceptions:**
-- Invalid value (e.g. negative stock quantity, missing required field) → the system rejects the save, keeps the stored product unchanged and shows the reason next to each invalid field.
+- Invalid value (e.g. missing required field, price below 0, SKU already used by another product) → the system rejects the save, keeps the stored product unchanged and shows the reason next to each invalid field.
 - The product was deleted meanwhile → the system shows "product not found"; nothing is saved.
 - The Admin cancels → nothing is saved.
 - The save fails (network error or expired session) → the Admin is told the change was not saved; the stored product is unchanged [NEEDS CLARIFICATION: see Open question 11].
 
-### PR-05 — Change product status
+### PR-05 — Publish a product
 
-1. From the product details, the Admin chooses a new product status.
-2. The system checks the transition is allowed, saves it and shows the updated product details.
+1. From the product details of a Draft product, the Admin chooses to publish it.
+2. The system checks the product is still Draft, sets its status to Active and shows the updated product details.
 
 **Exceptions:**
-- Transition not allowed [NEEDS CLARIFICATION: which ones] → the system refuses and explains why.
+- The product is already Active (e.g. published from another tab) → the system refuses, explains that only a Draft product can be published, and the product stays Active.
+- The product no longer exists → "product not found".
+
+### PR-07 — Adjust stock
+
+1. From the product details, the Admin chooses to adjust the stock.
+2. The Admin chooses add or remove and enters a number of units (a whole number of 1 or more).
+3. The Admin saves.
+4. The system applies the adjustment to the stored stock quantity and shows the updated product details.
+
+**Exceptions:**
+- The number of units is missing, 0, negative or not a whole number → the system rejects it, the stock quantity is unchanged and the reason is shown next to the field.
+- Removing the units would bring the stock quantity below 0 → the system refuses, tells the Admin the current stock quantity, and the stock quantity is unchanged.
+- The product no longer exists → "product not found".
+- The Admin cancels → nothing changes.
 
 ### PR-06 — Delete a product
 
@@ -140,9 +159,9 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 ## Business rules
 
-- **BR-001:** A product is added with a starting stock quantity of at least 1. *(Source: input "every product will have the quantity at least 1"; interpreted as applying at creation, see Open questions)*
-- **BR-002:** The add form pre-fills the starting stock quantity with 1. *(Source: assumption, interpretation of input "with stocks default")*
-- **BR-003:** A stock quantity is always a whole number of 0 or more; a negative or fractional quantity is rejected. *(Source: assumption; 0 is implied by input "stock quantity is down to 0")*
+- **BR-001:** A newly added product always gets a stock quantity of exactly 1. *(Source: input "stocks default … at least 1"; clarification 2026-10-16)*
+- **BR-002:** The Admin does not enter a stock quantity when adding a product; the add form has no stock quantity field. *(Source: clarification 2026-10-16)*
+- **BR-003:** After a product is added, its stock quantity is a whole number of 0 or more; a negative or fractional quantity is rejected. *(Source: input "stock quantity is down to 0"; clarification 2026-10-16)*
 - **BR-004:** A product may be deleted only if its product status is Draft or its stock quantity is 0. *(Source: input)*
 - **BR-005:** When a deletion is refused under BR-004, the system tells the Admin the reason and the product stays unchanged. *(Source: assumption)*
 - **BR-006:** A deletion takes effect only after the Admin explicitly confirms it. *(Source: assumption)*
@@ -150,15 +169,22 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 - **BR-008:** The product list shows 20 products per page by default. *(Source: input)*
 - **BR-009:** The Admin can change the page size to [NEEDS CLARIFICATION: is page size changeable, and to which values, e.g. 10/20/50/100?]. *(Source: interpretation of input "default is 20")*
 - **BR-010:** The product list is ordered by date added, newest first. *(Source: assumption)*
-- **BR-011:** Every product has exactly one product status; a newly added product gets status [NEEDS CLARIFICATION: Draft, or chosen by the Admin?]. *(Source: input mentions "product state is draft"; rest assumption)*
-- **BR-012:** Product status changes are limited to [NEEDS CLARIFICATION: list of statuses and allowed transitions; in particular, can a product go back to Draft?]. *(Source: open)*
-- **BR-013:** Every product has a name, which is required and is 1 to 200 characters long. *(Source: assumption; length is a default)*
-- **BR-014:** Product information consists of [NEEDS CLARIFICATION: field list, which are required, which must be unique (e.g. SKU), price rules]. *(Source: open)*
+- **BR-011:** Every product has exactly one product status, Draft or Active. *(Source: clarification 2026-10-16)*
+- **BR-012:** The only allowed status change is Draft → Active (publish); an Active product never returns to Draft. *(Source: clarification 2026-10-16)*
+- **BR-029:** A newly added product always gets status Draft; the add and edit forms do not set the status. *(Source: clarification 2026-10-16)*
+- **BR-013:** Every product has a name, which is required and is 1 to 200 characters long. *(Source: clarification 2026-10-16)*
+- **BR-014:** Product information consists of exactly these fields: name, SKU, price and description. *(Source: clarification 2026-10-16)*
+- **BR-030:** Every product has a SKU, which is required, 1 to 50 characters long and unique among all products; uniqueness ignores letter case and leading/trailing spaces. *(Source: clarification 2026-10-16; case and space handling is an assumption)*
+- **BR-031:** Every product has a price, which is required, 0 or more, with at most 2 decimal places, in the shop's currency. *(Source: clarification 2026-10-16)*
+- **BR-032:** A product's description is optional and at most 2,000 characters long. *(Source: clarification 2026-10-16)*
 - **BR-015:** Only the signed-in Admin can view, add, update, change status of or delete products. *(Source: constitution P1, P5)*
-- **BR-016:** The Admin changes a product's stock quantity through [NEEDS CLARIFICATION: the update form, or a separate stock adjustment action?]; after creation the quantity may be set to any value allowed by BR-003, including 0. *(Source: open; 0 implied by input delete rule)*
+- **BR-016:** After a product is added, its stock quantity changes only through a stock adjustment; the edit form does not show or change the stock quantity. *(Source: clarification 2026-10-16)*
+- **BR-033:** A stock adjustment adds or removes a whole number of units of 1 or more. *(Source: clarification 2026-10-16)*
+- **BR-034:** A stock adjustment that would bring the stock quantity below 0 is refused and the stock quantity is unchanged. *(Source: clarification 2026-10-16, follows from BR-003)*
+- **BR-035:** A stock adjustment is applied to the stored stock quantity at the moment it is saved, so two adjustments made close together both count. *(Source: assumption)*
 - **BR-017:** When an add or update is rejected, nothing is saved and the Admin sees which field is invalid and why. *(Source: assumption; constitution P6)*
 - **BR-018:** Product details show all product information, the stock quantity and the product status. *(Source: input "viewing product information")*
-- **BR-019:** Each row of the product list shows at least the product name, stock quantity and product status [NEEDS CLARIFICATION: which other fields]. *(Source: assumption)*
+- **BR-019:** Each row of the product list shows the product's name, SKU, price, stock quantity and product status; the description appears only in the product details. *(Source: assumption, based on the fields fixed by clarification 2026-10-16)*
 - **BR-020:** When the requested page is beyond the last page, the product list shows the last existing page. *(Source: assumption)*
 - **BR-021:** The product list shows the total number of products and of pages. *(Source: assumption)*
 - **BR-022:** When no products exist, the product list shows an empty-list message and a way to add a product. *(Source: assumption)*
@@ -172,7 +198,7 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 ## Quality expectations
 
 - **QE-01:** 95% of product list pages (20 products, 10,000 stored) are shown within 2 seconds of the Admin's action, measured in the browser. *(Volume and time are assumptions.)*
-- **QE-02:** 95% of adds, updates, status changes and deletions (10,000 products stored) are confirmed to the Admin within 1 second of the action, measured in the browser. *(Assumption.)*
+- **QE-02:** 95% of adds, updates, stock adjustments, publishes and deletions (10,000 products stored) are confirmed to the Admin within 1 second of the action, measured in the browser. *(Assumption.)*
 - **QE-03:** 100% of product operations and product views are refused without a signed-in Admin session. *(Constitution P5.)*
 - **QE-04:** Moving between the product list, product details, the add form and the edit form causes 0 full page reloads, and the browser Back button returns to the previous view, including the product list page number. *(Input "SPA"; Back-button behavior is an assumption.)*
 - **QE-05:** 100% of invalid inputs are rejected at the boundary with a field-level message, and 0 invalid values are stored. *(Constitution P6.)*
@@ -187,21 +213,18 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 ## Assumptions
 
 - The Admin is the only actor; there is no customer-facing part, so a product status only matters to the Admin and to the delete rule.
-- "At least 1" applies when a product is added; the stock quantity can later go down to 0 (otherwise the "down to 0" delete condition could never apply). Pending confirmation.
 - Stock quantity counts whole units; no units of measure, fractions or multiple warehouses.
 - The product list is ordered newest first by default (BR-010).
 - Deletion always asks for confirmation (BR-006).
 - Up to 10,000 products is the expected volume for QE-01 and QE-02.
 - The Admin may have two browser tabs open; the last save wins, and an operation on a product deleted meanwhile reports "product not found".
-- No history of stock changes is kept in this initiative.
+- No history of stock changes is kept in this initiative, and a stock adjustment does not record a reason.
 - The BG-01 target (under 1 minute per operation) is a starting point to be confirmed by the requester.
 - A chosen page size is not remembered between sessions (BL-07).
 
 ## Risks and dependencies
 
-- **Admin authentication does not exist yet.** Constitution P5 requires a signed-in Admin for every product page and endpoint, so no backlog item here can be shipped until sign-in exists. → Decide in Open question 1. Until then, every spec generated from this backlog depends on that capability.
-- **Product status lifecycle is undefined.** The delete rule (BR-004) depends on it; if a product can be moved back to Draft at will, any product can be deleted and BG-03 means little. → Open question 2.
-- **Conflict in the stock rule:** "every product will have the quantity at least 1" against "stock quantity is down to 0". → Open question 5; the assumption above applies until answered.
+- **Admin sign-in does not exist yet.** Constitution P5 requires a signed-in Admin for every product page and operation, so no backlog item here can be shipped until sign-in exists. → Delivered by R002 (Admin sign-in), analysed with `/sdd-ba` and built before BL-01.
 - **Permanent deletion loses data for good**, and later features (orders, sales) may need deleted products. → Confirmation step (BR-006); Open question 6.
 - **Paging without search** may make products hard to find once there are many. → Open question 7.
 
@@ -211,34 +234,37 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 | ID | Feature | Priority | Size | Depends on | Covers | Spec |
 |----|---------|----------|------|------------|--------|------|
-| BL-01 | Add a product | P1 | M | Admin sign-in (Q1) | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-013, BR-014, BR-015, BR-017, BR-028, QE-02, QE-03, QE-04, QE-05 | — |
+| BL-01 | Add a product | P1 | M | R002 (Admin sign-in) | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-015, BR-017, BR-028, QE-02, QE-03, QE-04, QE-05 | — |
 | BL-02 | Paged product list | P1 | M | BL-01 | BG-01, BR-008, BR-010, BR-015, BR-019, BR-020, BR-021, BR-022, QE-01, QE-03, QE-04 | — |
 | BL-03 | View product details | P1 | S | BL-02 | BG-01, BR-014, BR-015, BR-018, BR-023, QE-03, QE-04 | — |
-| BL-04 | Update product information and stock quantity | P1 | M | BL-03 | BG-01, BG-02, BR-003, BR-013, BR-014, BR-015, BR-016, BR-017, BR-026, QE-02, QE-03, QE-04, QE-05 | — |
-| BL-05 | Change product status | P1 | S | BL-03 | BG-03, BR-011, BR-012, BR-015, QE-02, QE-03 | — |
-| BL-06 | Delete a product | P1 | M | BL-03, BL-04, BL-05 | BG-01, BG-03, BR-004, BR-005, BR-006, BR-007, BR-015, BR-024, BR-025, QE-02, QE-03, QE-04 | — |
+| BL-04 | Update product information | P1 | M | BL-03 | BG-01, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-015, BR-016, BR-017, BR-026, QE-02, QE-03, QE-04, QE-05 | — |
+| BL-05 | Publish a product | P1 | S | BL-03 | BG-03, BR-011, BR-012, BR-015, QE-02, QE-03 | — |
+| BL-08 | Adjust stock | P1 | S | BL-03 | BG-01, BG-02, BR-003, BR-015, BR-016, BR-033, BR-034, BR-035, QE-02, QE-03, QE-04, QE-05 | — |
+| BL-06 | Delete a product | P1 | M | BL-03, BL-05, BL-08 | BG-01, BG-03, BR-004, BR-005, BR-006, BR-007, BR-015, BR-024, BR-025, QE-02, QE-03, QE-04 | — |
 | BL-07 | Choose product list page size | P2 | S | BL-02 | BR-009, BR-015, BR-027, QE-03, QE-04 | — |
 
 Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-slug` once `/sdd-ba-spec` creates the spec; `—` until then.
 
-**Every item depends on Admin sign-in** (constitution P5), which is not in this backlog yet; BL-01 lists it explicitly and the others inherit it through BL-01. How sign-in is delivered is Open question 1. P1 items BL-01 to BL-06 form the MVP. BL-05 exists only if Open question 2 keeps status change as a separate action; BL-07 exists only if Open question 8 makes page size changeable.
+**Every item depends on Admin sign-in** (constitution P5), delivered by the separate requirements document R002; BL-01 lists it explicitly and the others inherit it through BL-01. P1 items BL-01 to BL-06 and BL-08 form the MVP (BL-08 was added during clarification and is listed before BL-06, which depends on it). BL-07 exists only if Open question 8 makes page size changeable.
 
 ### BL-01 — Add a product
 
-**Value:** The Admin can record a new product with its starting stock quantity, so the product list starts to reflect what the shop sells.
+**Value:** The Admin can record a new product, so the product list starts to reflect what the shop sells.
 
 **Actors:** Admin
 
-**Spec brief:** The signed-in Admin opens the add form on the product management page, enters the product information and a starting stock quantity (pre-filled with 1, must be a whole number of at least 1), and saves. The system validates every field at the boundary, stores the product with its initial product status and shows a success confirmation with the saved values. Invalid input is rejected field by field and nothing is saved. Product fields, uniqueness and initial status are pending clarification (BR-011, BR-014).
+**Spec brief:** The signed-in Admin opens the add form on the product management page, enters the product information (no stock quantity field) and saves. The system validates every field at the boundary, stores the product with stock quantity 1 and status Draft and shows a success confirmation with the saved values. Product information is name, SKU (unique), price and description (BR-013, BR-014, BR-030–BR-032). Invalid input is rejected field by field and nothing is saved.
 
 **Key scenarios:**
-- Admin enters a valid name and other required information, keeps quantity 1, saves → product stored with stock quantity 1 and its initial status; success confirmation shown with the saved values.
+- Admin enters valid product information and saves → product stored with stock quantity 1 and status Draft; success confirmation shown with the saved values.
 - Admin clicks Save twice quickly → only one product is created.
-- Admin sets the starting stock quantity to 0, a negative or a fractional number → rejected with a message on the quantity field; nothing saved.
+- A request that includes a stock quantity (e.g. 50) → the value is ignored or rejected; the product is never stored with a stock quantity other than 1.
 - Admin leaves the name empty → rejected with a message on the name field.
+- Admin enters SKU "abc-1 " when "ABC-1" already exists → rejected with a message on the SKU field.
+- Admin enters price -1 or 9.999 → rejected with a message on the price field.
 - Request without a signed-in Admin session → refused.
 
-**Not included:** Listing products (BL-02), product details (BL-03), changing status after creation (BL-05).
+**Not included:** Listing products (BL-02), product details (BL-03), publishing (BL-05).
 
 ### BL-02 — Paged product list
 
@@ -246,7 +272,7 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 
 **Actors:** Admin
 
-**Spec brief:** The signed-in Admin opens the product management page and sees the product list, 20 products per page, newest first, each row showing at least name, stock quantity and product status, with page navigation and the total count. Navigation stays within the single-page application and the Back button restores the previous page number. With no products, an empty-list message offers a way to add one. A page number beyond the last page shows the last page.
+**Spec brief:** The signed-in Admin opens the product management page and sees the product list, 20 products per page, newest first, each row showing name, SKU, price, stock quantity and product status, with page navigation and the total count. Navigation stays within the single-page application and the Back button restores the previous page number. With no products, an empty-list message offers a way to add one. A page number beyond the last page shows the last page.
 
 **Key scenarios:**
 - 45 products exist → page 1 shows the 20 newest, page 3 shows the last 5; total shows 45.
@@ -258,7 +284,7 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 
 ### BL-03 — View product details
 
-**Value:** The Admin can check every piece of information about one product, and reach its edit, status and delete actions.
+**Value:** The Admin can check every piece of information about one product, and reach its edit, stock adjustment, publish and delete actions.
 
 **Actors:** Admin
 
@@ -269,42 +295,62 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 - Admin opens the details of a product deleted meanwhile → "product not found".
 - Request without a signed-in Admin session → refused.
 
-**Not included:** Editing (BL-04), changing status (BL-05), deleting (BL-06).
+**Not included:** Editing (BL-04), publishing (BL-05), deleting (BL-06), adjusting stock (BL-08).
 
-### BL-04 — Update product information and stock quantity
+### BL-04 — Update product information
 
-**Value:** The Admin keeps product information and stock quantity correct over time.
+**Value:** The Admin keeps product information correct over time.
 
 **Actors:** Admin
 
-**Spec brief:** From the product details, the signed-in Admin opens the edit form pre-filled with the current product information and stock quantity, changes values and saves. The system validates every field; the stock quantity must be a whole number of 0 or more. On success the updated product details are shown; on failure nothing is saved and each invalid field is explained. Whether stock is edited here or through a separate adjustment action is pending clarification (BR-016); this brief assumes the edit form.
+**Spec brief:** From the product details, the signed-in Admin opens the edit form pre-filled with the current product information (name, SKU, price, description), changes values and saves. The form has no stock quantity or status field (BR-016, BR-029). The system validates every field at the boundary; on success the updated product details are shown; on failure nothing is saved and each invalid field is explained.
 
 **Key scenarios:**
-- Admin changes the name and sets quantity from 5 to 0 → saved; details show the new name and quantity 0.
-- Admin enters quantity -1 → rejected on the quantity field; stored product unchanged.
+- Admin changes the name and price → saved; details show the new values; stock quantity and status unchanged.
+- Admin enters price -1 → rejected on the price field; stored product unchanged.
+- A request that includes a stock quantity or status → those values are ignored or rejected; stock quantity and status unchanged.
+- Admin changes the SKU to one used by another product → rejected on the SKU field; stored product unchanged.
 - Admin saves a product deleted meanwhile → "product not found"; nothing saved.
 - Request without a signed-in Admin session → refused.
 
-**Not included:** Changing product status (BL-05); stock history (out of scope).
+**Not included:** Publishing (BL-05); stock quantity changes (BL-08).
 
-### BL-05 — Change product status
+### BL-05 — Publish a product
 
-**Value:** The Admin can move a product through its lifecycle, which also determines whether it can be deleted.
+**Value:** The Admin marks a product as ready (Active), which also protects it from deletion while it is in stock.
 
 **Actors:** Admin
 
-**Spec brief:** *(Assumption: inferred from the Draft delete condition; may merge into BL-01/BL-04 if Open question 2 decides status is a form field.)* From the product details, the signed-in Admin changes the product status. The system allows only the permitted transitions (pending clarification, BR-012) and refuses others with a reason. The new status is shown in the product details and the product list. The statuses, the initial status and whether a product can return to Draft are pending clarification.
+**Spec brief:** From the product details of a Draft product, the signed-in Admin publishes it with a separate action; the system checks the stored product is still Draft, sets it to Active and shows the updated status in the product details and the product list. Draft → Active is the only allowed change; an Active product offers no publish action and can never return to Draft (BR-012).
 
 **Key scenarios:**
-- Admin moves a Draft product to the next allowed status → saved and shown.
-- Admin tries a transition that is not allowed → refused with a reason; status unchanged.
+- Admin publishes a Draft product → status Active, shown in details and list.
+- Publish requested for a product that is already Active → refused with a reason; status stays Active.
 - Request without a signed-in Admin session → refused.
 
-**Not included:** The initial status at creation (BL-01); deletion (BL-06).
+**Not included:** The initial status at creation (BL-01, always Draft); deletion (BL-06); any way back to Draft.
+
+### BL-08 — Adjust stock
+
+**Value:** The Admin keeps stock quantities matching what is on the shelf, including bringing a product down to 0 so it can be deleted.
+
+**Actors:** Admin
+
+**Spec brief:** From the product details, the signed-in Admin adjusts the stock: chooses add or remove and enters a whole number of units of 1 or more. The system validates the input at the boundary, applies the adjustment to the stored stock quantity at that moment (BR-035), and shows the new stock quantity. A removal that would take the stock below 0 is refused with the current stock quantity shown; nothing changes. No reason or history is recorded.
+
+**Key scenarios:**
+- Stock 1, Admin adds 24 → stock 25.
+- Stock 25, Admin removes 25 → stock 0 (product is now out of stock).
+- Stock 3, Admin removes 5 → refused; message shows current stock 3; stock stays 3.
+- Admin enters 0, -2 or 1.5 units → rejected on the units field; stock unchanged.
+- Two adjustments (add 5, remove 2) saved close together from two tabs on stock 10 → stock 13.
+- Request without a signed-in Admin session → refused.
+
+**Not included:** Editing product information (BL-04); stock history, reasons, low-stock alerts (out of scope).
 
 ### BL-06 — Delete a product
 
-**Value:** The Admin can delete Draft products and out-of-stock products, while products that are out of Draft and still in stock are protected.
+**Value:** The Admin can delete Draft products and out-of-stock products, while Active products that are still in stock are protected.
 
 **Actors:** Admin
 
@@ -312,8 +358,8 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 
 **Key scenarios:**
 - Draft product with quantity 12 → confirmation → deleted; no longer in the list.
-- Non-Draft product with quantity 0 → confirmation → deleted.
-- Non-Draft product with quantity 3 → refused with the reason; product unchanged.
+- Active product with quantity 0 → confirmation → deleted.
+- Active product with quantity 3 → refused with the reason; product unchanged.
 - Admin cancels the confirmation → nothing deleted.
 - Request without a signed-in Admin session → refused.
 
@@ -337,12 +383,12 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 
 | Goal / rule / quality | Backlog items |
 |-----------------------|---------------|
-| BG-01 | BL-01, BL-02, BL-03, BL-04, BL-06 |
-| BG-02 | BL-01, BL-04 |
+| BG-01 | BL-01, BL-02, BL-03, BL-04, BL-06, BL-08 |
+| BG-02 | BL-01, BL-08 |
 | BG-03 | BL-05, BL-06 |
 | BR-001 | BL-01 |
 | BR-002 | BL-01 |
-| BR-003 | BL-01, BL-04 |
+| BR-003 | BL-08 |
 | BR-004 | BL-06 |
 | BR-005 | BL-06 |
 | BR-006 | BL-06 |
@@ -354,8 +400,8 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 | BR-012 | BL-05 |
 | BR-013 | BL-01, BL-04 |
 | BR-014 | BL-01, BL-03, BL-04 |
-| BR-015 | BL-01, BL-02, BL-03, BL-04, BL-05, BL-06, BL-07 |
-| BR-016 | BL-04 |
+| BR-015 | BL-01, BL-02, BL-03, BL-04, BL-05, BL-06, BL-07, BL-08 |
+| BR-016 | BL-04, BL-08 |
 | BR-017 | BL-01, BL-04 |
 | BR-018 | BL-03 |
 | BR-019 | BL-02 |
@@ -368,23 +414,30 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 | BR-026 | BL-04 |
 | BR-027 | BL-07 |
 | BR-028 | BL-01 |
+| BR-029 | BL-01, BL-04 |
+| BR-030 | BL-01, BL-04 |
+| BR-031 | BL-01, BL-04 |
+| BR-032 | BL-01, BL-04 |
+| BR-033 | BL-08 |
+| BR-034 | BL-08 |
+| BR-035 | BL-08 |
 | QE-01 | BL-02 |
-| QE-02 | BL-01, BL-04, BL-05, BL-06 |
-| QE-03 | BL-01, BL-02, BL-03, BL-04, BL-05, BL-06, BL-07 |
-| QE-04 | BL-01, BL-02, BL-03, BL-04, BL-06, BL-07 |
-| QE-05 | BL-01, BL-04 |
+| QE-02 | BL-01, BL-04, BL-05, BL-06, BL-08 |
+| QE-03 | BL-01, BL-02, BL-03, BL-04, BL-05, BL-06, BL-07, BL-08 |
+| QE-04 | BL-01, BL-02, BL-03, BL-04, BL-06, BL-07, BL-08 |
+| QE-05 | BL-01, BL-04, BL-08 |
 
 ## Open questions
 
-- [ ] 1. Admin sign-in does not exist, and constitution P5 requires it for every product page and operation. How should it be delivered: as a "BL-00 Admin sign-in" item in this backlog, or as a separate feature/requirements document built first? Also: how is the single Admin account created (seeded from configuration, or a first-run setup), what are the lockout threshold and duration after failed sign-ins, and the session timeout? (affects: BR-015, QE-03, all BL items)
-- [ ] 2. Which product statuses exist, which status does a new product get, and which transitions are allowed? In particular, can a product go back to Draft? Is status set in the add/edit form, or by a separate action? (affects: BR-011, BR-012, BR-004, BL-01, BL-05, BL-06; decides whether BL-05 exists and what BL-06 depends on)
-- [ ] 3. How does the stock quantity change after a product is added: in the update form, or through a separate stock adjustment action (add/remove units)? (affects: BR-016, BL-04)
-- [ ] 4. Which fields make up product information? Which are required, which must be unique (e.g. SKU), and what are the price rules? Are categories or images wanted? (affects: BR-013, BR-014, BR-019, BL-01, BL-02, BL-03, BL-04)
-- [ ] 5. Does "at least 1" apply only when a product is added (it can later drop to 0), or at all times? (affects: BR-001, BR-003, BR-004, BR-016)
+- [x] 1. Admin sign-in does not exist, and constitution P5 requires it for every product page and operation. How should it be delivered: as a "BL-00 Admin sign-in" item in this backlog, or as a separate feature/requirements document built first? Also: how is the single Admin account created (seeded from configuration, or a first-run setup), what are the lockout threshold and duration after failed sign-ins, and the session timeout? (affects: BR-015, QE-03, all BL items)
+- [x] 2. Which product statuses exist, which status does a new product get, and which transitions are allowed? In particular, can a product go back to Draft? Is status set in the add/edit form, or by a separate action? (affects: BR-011, BR-012, BR-004, BL-01, BL-05, BL-06; decides whether BL-05 exists and what BL-06 depends on)
+- [x] 3. How does the stock quantity change after a product is added: in the update form, or through a separate stock adjustment action (add/remove units)? (affects: BR-016, BL-04)
+- [x] 4. Which fields make up product information? Which are required, which must be unique (e.g. SKU), and what are the price rules? Are categories or images wanted? (affects: BR-013, BR-014, BR-019, BL-01, BL-02, BL-03, BL-04)
+- [x] 5. Does "at least 1" apply only when a product is added (it can later drop to 0), or at all times? (affects: BR-001, BR-003, BR-004, BR-016)
 - [ ] 6. Should deletion be permanent, or should a deleted product be hidden but recoverable? (affects: BR-007, BL-06)
 - [ ] 7. Do you want search, filtering or sorting on the product list? (affects: BL-02, scope)
 - [ ] 8. Can the Admin change the page size, and to which values? (affects: BR-009, BL-07)
-- [ ] 9. Does "stocks default" mean the add form pre-fills the quantity with 1 but lets you change it (at least 1)? Or is it always exactly 1 when a product is added? (affects: BR-002, BL-01)
+- [x] 9. Does "stocks default" mean the add form pre-fills the quantity with 1 but lets you change it (at least 1)? Or is it always exactly 1 when a product is added? (affects: BR-002, BL-01)
 - [ ] 10. Please confirm the targets and defaults: under 1 minute per operation, up to 10,000 products, list shown within 2 seconds, operations confirmed within 1 second; the list ordered newest first; a page beyond the last showing the last page. (affects: BG-01, QE-01, QE-02, BR-010, BR-020)
 - [ ] 11. If a save fails (network error, or the session expired mid-edit), should the form keep what the Admin entered so they can retry after signing in again? (affects: PR-01, PR-04, BL-01, BL-04)
 
@@ -392,6 +445,11 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 
 | Date | Question | Decision |
 |------|----------|----------|
+| 2026-10-16 | How is Admin sign-in (required by P5) delivered? | A separate requirements document, R002 (Admin sign-in), built before BL-01; account provisioning, lockout and session timeout are decided there. |
+| 2026-10-16 | Which product statuses exist and which transitions are allowed? | Two statuses, Draft and Active. New products start as Draft; a separate publish action moves Draft → Active; no return to Draft. |
+| 2026-10-16 | Which fields make up product information? | Name (required, 1–200), SKU (required, unique, up to 50), price (required, ≥ 0, 2 decimals), description (optional, up to 2,000). No categories or images. |
+| 2026-10-16 | How do "at least 1" and "down to 0" fit together, and what does "stocks default" mean? | A new product always starts with stock quantity exactly 1 (the add form has no quantity field); afterwards stock can be any whole number ≥ 0. Also answers question 9. |
+| 2026-10-16 | How does the stock quantity change after a product is added? | Only through a separate stock adjustment (add or remove N ≥ 1 units, never below 0); the edit form does not touch stock. New backlog item BL-08 (P1, S); BL-04 narrowed to product information. |
 
 ## Revision history
 
