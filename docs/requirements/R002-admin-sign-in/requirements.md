@@ -26,7 +26,7 @@
 
 - **BG-01:** With the correct sign-in name and password, the Admin gets from the sign-in page to the product management page in under 30 seconds. *(Target is an assumption.)*
 - **BG-02:** 0 product pages or product operations can be reached without a signed-in Admin session. *(Input "in order to perform action in R001"; constitution P5.)*
-- **BG-03:** Online password guessing is limited to at most 20 attempts per hour. This follows from BR-016 with the recommended 5 attempts / 15 minutes. *(Constitution P5; figure depends on Open question 5.)*
+- **BG-03:** Online password guessing is limited to at most 20 attempts per hour, from all sources together. This follows from BR-016 (5 attempts, then 15 minutes locked). *(Constitution P5.)*
 - **BG-04:** 0 readable Admin passwords in stored data, logs, error responses or committed configuration. *(Constitution P4, P7.)*
 
 ## Scope
@@ -40,14 +40,14 @@
 - Signing out. *(Assumption: not in the input, nor required by P5; recommended for a shared computer.)*
 - Ending an Admin session after an idle timeout and a maximum session length, and letting the Admin sign in again without losing an open form (R001 BR-049).
 - Changing the Admin password while signed in. *(Pending Open question 2.)*
-- Recovering access when the password is forgotten, through the system operator. *(Pending Open question 3.)*
+- Recovering access when the password is forgotten, through the system operator and the setup values.
 
 ### Out of scope
 
 - Self-registration, more user accounts, roles or permissions: forbidden by constitution P1.
 - Changing the sign-in name: not requested.
 - Two-factor authentication, sign-in with external providers, CAPTCHA: not requested.
-- Password reset by email or security questions: not requested, and the allowed dependency list has no way to send mail (see Constraints; Open question 3).
+- Password reset by email or security questions: not requested, and the allowed dependency list has no way to send mail (see Constraints). Recovery is through the system operator (BR-033).
 - A list of active sessions or signing out other devices on request: not requested. A password change ends the other sessions (BR-031).
 - An audit trail of Admin actions beyond failed sign-ins and lockouts (BR-019): not requested.
 - Any product feature: covered by R001.
@@ -61,7 +61,9 @@
 | Sign-in name | What the Admin types to say who they are when signing in. [NEEDS CLARIFICATION: a username chosen at setup, or an email address?] | username, login, user ID, email (until decided) |
 | Password | The secret the Admin types with the sign-in name. Stored only as a salted slow hash (P4) | passcode, PIN, credentials |
 | Initial password | The password given at Admin account setup | default password, temporary password |
-| Admin account setup | The one-time creation of the Admin account by the system operator, outside the application | registration, sign-up, onboarding |
+| Admin account setup | The one-time creation of the Admin account at system start, from setup values the system operator provides, outside the application | registration, sign-up, onboarding |
+| Setup values | The sign-in name and initial password the system operator puts in the environment the system runs in (never in committed files), read at system start. For recovery, also the reset indication and the new password | default credentials, seed data, config file |
+| Reset indication | An explicit setup value that tells the system, at start, to replace the Admin password with the new password in the setup values (BR-033) | reset flag (in user-facing text), override |
 | Sign in | Prove identity with the sign-in name and password, which starts an Admin session | log in, login, log on, authenticate |
 | Sign-in page | The page where the Admin signs in. It is the only page available without an Admin session | login page, login screen, home page |
 | Admin session | The time during which the Admin is signed in, in one browser. It starts at sign-in and ends at sign-out, at expiry or at a password change | login, token, cookie, connection |
@@ -81,7 +83,7 @@
 
 ### PR-01 — Set up the Admin account
 
-1. The system operator provides the sign-in name and the initial password in the setup values of the environment where the system runs, outside the application and never in committed files. [NEEDS CLARIFICATION: setup method, see Open question 1]
+1. The system operator provides the sign-in name and the initial password in the setup values of the environment where the system runs, outside the application and never in committed files (BR-002).
 2. The system starts and finds no Admin account.
 3. The system checks the setup values (BR-005, BR-007) and creates the Admin account. It stores the password only as a salted slow hash (BR-008).
 4. The system operator removes the initial password from the setup values (recommended).
@@ -149,9 +151,10 @@
 ### PR-07 — Recover a forgotten password
 
 1. The Admin cannot sign in because the password is forgotten.
-2. The system operator sets a new password through the setup values, using an explicit reset indication. [NEEDS CLARIFICATION: recovery method, see Open question 3]
-3. The system replaces the password, clears any lockout and ends every Admin session (BR-033).
-4. The Admin signs in with the new password (PR-02).
+2. The system operator puts a new password and an explicit reset indication in the setup values, and restarts the system.
+3. At start, the system replaces the password, clears any lockout and ends every Admin session (BR-033).
+4. The system operator removes the reset indication and the new password from the setup values (recommended).
+5. The Admin signs in with the new password (PR-02).
 
 **Exceptions:**
 - The new password breaks BR-007 → the system does not start, and it logs the reason without the value. The old password stays valid (BR-037).
@@ -159,7 +162,7 @@
 ## Business rules
 
 - **BR-001:** The system has exactly one Admin account. There is no way to register, create another account or assign roles. *(Source: constitution P1)*
-- **BR-002:** The Admin account is created by Admin account setup, outside the application. [NEEDS CLARIFICATION: setup method; recommended: when the system starts with no Admin account, it creates the account from setup values that the system operator puts in the environment] *(Source: constitution P1, P7; method is an assumption)*
+- **BR-002:** The Admin account is created by Admin account setup, outside the application: when the system starts and no Admin account exists, it creates the account from setup values (sign-in name and initial password) that the system operator puts in the environment the system runs in. Setup values never come from committed files, and there is no setup page or separate setup command. *(Source: constitution P1, P7; clarification 2026-10-16)*
 - **BR-003:** The system never creates an Admin account with a built-in or default password. If no Admin account exists and the setup values are missing or invalid, the system does not start, and it logs which setting is missing without its value. *(Source: constitution P7, P9; "does not start" is an assumption)*
 - **BR-004:** Once the Admin account exists, the setup values do not change it. The only exception is the explicit recovery of BR-033. *(Source: assumption)*
 - **BR-005:** The Admin signs in with a sign-in name and a password. The sign-in name is 1 to 100 characters long. [NEEDS CLARIFICATION: a username or an email address?] *(Source: input "sign in"; length is an assumption)*
@@ -171,9 +174,9 @@
 - **BR-011:** After a successful sign-in, the Admin sees the page they were trying to open when the sign-in page appeared. Otherwise they see the product management page. *(Source: assumption)*
 - **BR-012:** The page shown after sign-in is always a page of this system. A destination outside the system is ignored, and the product management page is shown instead. *(Source: assumption, security)*
 - **BR-013:** A signed-in Admin who opens the sign-in page is taken to the product management page. *(Source: assumption)*
-- **BR-014:** Every page and every operation requires a signed-in Admin session, except the sign-in page and the sign-in operation. Without a session, an operation is refused and returns no data or internal detail, and a page shows the sign-in page. [NEEDS CLARIFICATION: the existing health check, and the OpenAPI document in Development, answer without a session. Require a session for them, remove them, or amend the constitution to allow them?] *(Source: constitution P5, P7; input "in order to perform action in R001"; R001 BR-015)*
+- **BR-014:** Every page and every operation requires a signed-in Admin session, except the sign-in page and the sign-in operation. Without a session, an operation is refused and returns no data or internal detail, and a page shows the sign-in page. This includes the health check and the OpenAPI document available in Development: they require a signed-in Admin session like every other operation. *(Source: constitution P5, P7; input "in order to perform action in R001"; R001 BR-015; clarification 2026-10-16)*
 - **BR-015:** The Admin may be signed in from several browsers at the same time, and each one has its own Admin session. *(Source: assumption; Open question 12)*
-- **BR-016:** After [NEEDS CLARIFICATION: number, recommended 5] failed sign-in attempts in a row, sign-in is locked for [NEEDS CLARIFICATION: duration, recommended 15 minutes]. Attempts count whatever sign-in name was entered. During a lockout, every sign-in attempt is refused, even with the correct password. [NEEDS CLARIFICATION: lockout for the whole account, or per source of the attempts?] *(Source: constitution P5; figures and scope are assumptions)*
+- **BR-016:** After 5 failed sign-in attempts in a row, sign-in is locked for 15 minutes. The count and the lockout apply to the whole Admin account, whatever sign-in name was entered and wherever the attempts come from. During a lockout, every sign-in attempt is refused, even with the correct password. *(Source: constitution P5; clarification 2026-10-16)*
 - **BR-017:** During a lockout, the sign-in page says sign-in is temporarily locked and in how many minutes it can be tried again. *(Source: assumption)*
 - **BR-018:** The count of failed sign-in attempts in a row goes back to 0 after a successful sign-in and when a lockout ends. *(Source: assumption)*
 - **BR-019:** Every failed sign-in attempt and every lockout is logged with its time. The entered password is never logged. *(Source: constitution P7, P9; assumption)*
@@ -190,7 +193,7 @@
 - **BR-030:** A wrong current password in a password change counts as a failed sign-in attempt under BR-016. *(Source: assumption, security)*
 - **BR-031:** After a successful password change, every other Admin session ends and the current one stays active. *(Source: assumption)*
 - **BR-032:** [NEEDS CLARIFICATION: must the Admin replace the initial password at the first sign-in before reaching any other page? Recommended: no] *(Source: Open question 2)*
-- **BR-033:** There is no self-service password reset (no email, no security questions). [NEEDS CLARIFICATION: recovery method; recommended: the system operator sets a new password through the setup values with an explicit reset indication, which also clears any lockout and ends every Admin session] *(Source: assumption; Open question 3)*
+- **BR-033:** There is no self-service password reset (no email, no security questions). A forgotten password is recovered only by the system operator: at system start, when the setup values contain an explicit reset indication and a new password, the system replaces the stored password, clears any lockout and ends every Admin session. *(Source: clarification 2026-10-16)*
 - **BR-034:** Every request, including the sign-in page and the sign-in operation, is accepted only over an encrypted connection, so neither passwords nor Admin sessions travel in plain text. A request over an unencrypted connection is refused. *(Source: constitution P4 "MUST NOT be transmitted in plain text", P5, P7)*
 - **BR-035:** Input rejected at the boundary (an empty or too-long field) is not a failed sign-in attempt and does not count toward a lockout. *(Source: assumption)*
 - **BR-036:** During a lockout, a password change is refused as well, even with the correct current password. *(Source: assumption, security)*
@@ -222,7 +225,7 @@
 - No secrets in source code, committed configuration, logs or error responses. Secrets come from the environment the system runs in. *(Source: constitution P7; docs/architecture.md "Configuration".)*
 - The system is a single-page application. *(Source: R001 constraint; docs/architecture.md.)*
 - When a save fails because the session expired, the form stays open in the same tab with its values, and the values are not stored anywhere else in the browser. *(Source: R001 BR-049.)*
-- R002 must be built before R001 BL-01. [NEEDS CLARIFICATION: which R002 items exactly, given that some R002 scenarios rely on R001 pages and forms (Open question 13)] *(Source: R001 "Risks and dependencies".)*
+- All R002 P1 items (BL-01 to BL-05) are built before R001 BL-01. R002 BL-02 delivers the product management page as an empty, protected layout that R001 BL-02 fills in, and R002 scenarios use only that page. Checking that an open form keeps its values when a session ends (R001 BR-049) belongs to R001 BL-01, BL-04 and BL-08. *(Source: R001 "Risks and dependencies"; clarification 2026-10-16.)*
 - The allowed dependency list has nothing that can send mail, so an email-based feature would need an architecture change. *(Source: docs/architecture.md "Allowed dependencies".)*
 
 ## Assumptions
@@ -230,7 +233,6 @@
 - "The user" in the input means the single Admin (constitution P1).
 - The system operator and the Admin are the same person, so setup values and recovery are trusted. Whoever controls the environment the system runs in controls the Admin account.
 - Attempts with empty or too-long fields, rejected at the boundary, do not count as failed sign-in attempts.
-- Failed sign-in attempts are counted for the whole system, whatever sign-in name was entered. This also hides whether a sign-in name exists.
 - The Admin finds out that a session expired at the next action. There is no countdown or warning before expiry.
 - Signing out with an open form does not warn about unsaved values.
 - The system is reached over an encrypted connection from end to end, including local development.
@@ -238,13 +240,14 @@
 
 ## Risks and dependencies
 
-- **Lockout as denial of service:** a lockout for the whole account lets anyone who can reach the sign-in page keep the Admin locked out. → A short lockout, recovery through BL-07 clears it, and the scope is decided in Open question 5.
+- **Lockout as denial of service:** a lockout for the whole account lets anyone who can reach the sign-in page keep the Admin locked out. → Accepted for the account-wide lockout (BR-016): it is short (15 minutes), and recovery through BL-07 clears it. Counting per account also hides whether a sign-in name exists and cannot be bypassed by changing source.
 - **Initial password left in the setup values:** it may stay readable in the environment after setup. → BR-004 ignores it once the account exists, the operator is told to remove it, and the Admin can change the password (BL-06). Open question 2 decides whether a change is forced.
-- **Forgotten password with no recovery:** without BL-07, a forgotten password locks the Admin out for good. → BL-07, Open question 3.
+- **Forgotten password with no recovery:** without BL-07, a forgotten password locks the Admin out for good. → BL-07 (operator reset through the setup values, BR-033).
+- **Reset indication left in the setup values:** every restart would reset the password again and end all sessions. → The operator is told to remove it after recovery (PR-07); the spec for BL-07 decides whether the system warns about it.
 - **Slow hash adds time to sign-in:** the hashing P4 requires takes noticeable time. → QE-01 allows 2 s.
-- **Existing health check and OpenAPI document answer without a session:** the health check (`.AllowAnonymous()`) and the OpenAPI document mapped in Development conflict with P5, which allows only the sign-in page and endpoint. → BR-014, Open question 4, handled in BL-02.
-- **Build-order cycle with R001:** R001 needs R002 first, but some R002 scenarios (BL-02 product details after sign-in, BL-04 "next save refused", BL-05 "saves the add form") rely on R001 pages and forms. → Open question 13; spec numbers (013+) do not imply build order.
-- **R001 spec 001-add-product is already Approved** and its scenarios expect refusal without a session. → At least R002 BL-01 and BL-02 must be built before spec 001 (Open question 13).
+- **Existing health check and OpenAPI document answer without a session:** the health check (`.AllowAnonymous()`) and the OpenAPI document mapped in Development conflict with P5, which allows only the sign-in page and endpoint. → Both require a signed-in Admin session (BR-014), handled in BL-02. Monitoring that needs an anonymous health check would require a constitution amendment.
+- **Build-order cycle with R001:** R001 needs R002 first, while the session-ending behavior matters most on R001 forms. → R002 P1 items are built first against an empty, protected product management page; R001 BL-01, BL-04 and BL-08 check that forms keep their values (R001 BR-049). Spec numbers (013+) do not imply build order.
+- **R001 spec 001-add-product is already Approved** and its scenarios expect refusal without a session. → R002 BL-01 to BL-05 are built before spec 001.
 - **Encrypted connection in deployment:** a deployment that removes encryption before the system receives the request would hide BR-034 violations. → Recorded as an assumption; check in the plan.
 
 ## Backlog
@@ -263,7 +266,7 @@
 
 Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-slug` once `/sdd-ba-spec` creates the spec; `—` until then.
 
-The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5: an account, sign-in, protection by default, brute-force lockout, sign-out and session expiry. R002 must be built before R001 BL-01; which items exactly is Open question 13. Spec numbers 001–012 are reserved by R001, so specs for this backlog start at 013. BL-06 and BL-07 may change priority or leave scope after Open questions 2 and 3.
+The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5: an account, sign-in, protection by default, brute-force lockout, sign-out and session expiry. BL-01 to BL-05 are all built before R001 BL-01 (see Constraints). Spec numbers 001–012 are reserved by R001, so specs for this backlog start at 013. BL-06 may change priority or leave scope after Open question 2.
 
 ### BL-01 — Admin account setup
 
@@ -271,7 +274,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** System operator
 
-**Spec brief:** When the system starts and no Admin account exists, it creates the one Admin account (BR-001) from the setup values the system operator provides outside the application, never from committed files (BR-002). The sign-in name and initial password are checked (BR-005, BR-007), and the password is stored only as a salted slow hash (BR-008, P4). If setup values are missing or invalid, the system does not start, and it logs which setting is wrong without its value (BR-003). Once the account exists, the setup values are ignored (BR-004). [NEEDS CLARIFICATION: setup method, Open question 1]
+**Spec brief:** When the system starts and no Admin account exists, it creates the one Admin account (BR-001) from the setup values the system operator provides outside the application, never from committed files (BR-002). The sign-in name and initial password are checked (BR-005, BR-007), and the password is stored only as a salted slow hash (BR-008, P4). If setup values are missing or invalid, the system does not start, and it logs which setting is wrong without its value (BR-003). Once the account exists, the setup values are ignored (BR-004). There is no setup page and no separate setup command.
 
 **Key scenarios:**
 - No account, valid setup values → account created; the stored password is a hash with its own salt and the required iterations.
@@ -288,18 +291,19 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** Admin, Unauthorised person
 
-**Spec brief:** The sign-in page asks for the sign-in name and password, which are validated at the boundary (QE-07); rejected input is not a failed sign-in attempt (BR-035). A correct sign-in name and password start an Admin session and show the page that was requested or the product management page, never a destination outside the system (BR-009, BR-011, BR-012). A failed sign-in attempt shows one generic message and gives no hint about whether the sign-in name exists (BR-010, QE-04). Every other page and operation, including the existing health check (subject to Open question 4), requires an Admin session: pages show the sign-in page, and operations are refused without data (BR-014, QE-02). Every request is accepted only over an encrypted connection (BR-034, QE-08). A double-submitted sign-in starts one Admin session (BR-041).
+**Spec brief:** This item delivers the product management page as an empty, protected layout that R001 BL-02 fills in later. The sign-in page asks for the sign-in name and password, which are validated at the boundary (QE-07); rejected input is not a failed sign-in attempt (BR-035). A correct sign-in name and password start an Admin session and show the page that was requested or the product management page, never a destination outside the system (BR-009, BR-011, BR-012). A failed sign-in attempt shows one generic message and gives no hint about whether the sign-in name exists (BR-010, QE-04). Every other page and operation, including the existing health check and the OpenAPI document in Development, requires an Admin session: pages show the sign-in page, and operations are refused without data (BR-014, QE-02). Every request is accepted only over an encrypted connection (BR-034, QE-08). A double-submitted sign-in starts one Admin session (BR-041).
 
 **Key scenarios:**
 - Correct credentials → product management page shown within 2 seconds (QE-01).
 - Sign-in name "Admin " entered for the account "admin" → accepted (BR-006); password "Secret" entered for "secret" → refused.
 - Unknown sign-in name, and wrong password → the same message for both; sign-in name kept, password cleared.
-- Product details page opened without a session → sign-in page; after sign-in, the product details are shown.
+- Product management page opened without a session → sign-in page; after sign-in, the product management page is shown.
 - Sign-in page opened with a destination on another site → after sign-in, the product management page is shown.
-- Any product operation without a session → refused, no product data in the response.
+- Any protected operation without a session → refused, no data in the response.
+- Health check, or the OpenAPI document in Development, requested without a session → refused.
 - Empty password, or a 129-character password → rejected at the boundary; not counted as a failed sign-in attempt.
 
-**Not included:** Lockout (BL-03); sign-out (BL-04); expiry and signing in again (BL-05).
+**Not included:** Lockout (BL-03); sign-out (BL-04); expiry and signing in again (BL-05); any product content on the product management page (R001).
 
 ### BL-03 — Lock sign-in after failed attempts
 
@@ -307,13 +311,14 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** Admin, Unauthorised person
 
-**Spec brief:** The system counts failed sign-in attempts in a row, whatever sign-in name was entered. After [NEEDS CLARIFICATION: 5] failures, sign-in is locked for [NEEDS CLARIFICATION: 15 minutes], and every attempt is refused, even with the correct password (BR-016). The sign-in page says sign-in is locked and in how many minutes to try again (BR-017). The count goes back to 0 after a successful sign-in or when the lockout ends (BR-018). Every failure and lockout is logged with its time and never with the password (BR-019). The limit holds when many attempts arrive at the same time (BR-040).
+**Spec brief:** The system counts failed sign-in attempts in a row for the whole Admin account, whatever sign-in name was entered and wherever the attempts come from. After 5 failures, sign-in is locked for 15 minutes, and every attempt is refused, even with the correct password (BR-016). The sign-in page says sign-in is locked and in how many minutes to try again (BR-017). The count goes back to 0 after a successful sign-in or when the lockout ends (BR-018). Every failure and lockout is logged with its time and never with the password (BR-019). The limit holds when many attempts arrive at the same time (BR-040).
 
 **Key scenarios:**
 - 4 failures, then the correct password → signed in; the count goes back to 0.
 - 5 failures → locked; the correct password is refused with a "locked, try again in 15 minutes" message.
 - 15 minutes after the lockout began → the correct password works.
 - Failures with an unknown sign-in name → counted the same way as wrong passwords.
+- Failures from two different browsers → counted together toward the same lockout.
 - The log shows 5 failures and 1 lockout, with no password text.
 
 **Not included:** Wrong current password in a password change (BL-06 reuses this count); clearing a lockout through recovery (BL-07).
@@ -327,9 +332,9 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 **Spec brief:** *(Assumption: sign-out was not in the input.)* From every page except the sign-in page, the signed-in Admin signs out. The Admin session ends at once with no confirmation, and the sign-in page is shown (BR-026, BR-027). The ended session can never be used again (BR-023, QE-05), and going Back shows no protected content (BR-039). Other open tabs of the same browser are refused at their next action and offered to sign in again, which is the behavior BL-05 delivers.
 
 **Key scenarios:**
-- Admin signs out from the product list → sign-in page shown; Back button does not show product data.
+- Admin signs out from the product management page → sign-in page shown; Back button does not show protected content.
 - A request made after sign-out with the old session → refused.
-- Two tabs open, sign-out in one → the other tab's next save is refused.
+- Two tabs open, sign-out in one → the other tab's next action is refused.
 
 **Not included:** The sign-in prompt in the other tab (BL-05); signing out other browsers (out of scope, except BL-06).
 
@@ -342,12 +347,12 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 **Spec brief:** An Admin session ends after [NEEDS CLARIFICATION: 30 minutes] without activity and at the latest [NEEDS CLARIFICATION: 12 hours] after sign-in (BR-020, BR-021). There is no "keep me signed in" option (BR-022). When an operation is refused because the session has ended, the Admin is told so and can sign in again without leaving the current view. An open form keeps its values as R001 BR-049 requires (BR-024). After signing in again, the Admin stays on the same view and retries; nothing is resent automatically (BR-025). Closing the prompt keeps the view, and the next refused operation prompts again (BR-038). Only Admin activity resets the idle timeout (BR-043). [NEEDS CLARIFICATION: sign-in prompt over the current view, Open question 10]
 
 **Key scenarios:**
-- 31 minutes idle, then the Admin saves the add form → refused with "session ended"; sign-in prompt shown; the form keeps its values; after signing in, the Admin saves successfully.
+- 31 minutes idle, then the Admin starts an operation on the product management page → refused with "session ended"; sign-in prompt shown over the same view; after signing in, the Admin retries it successfully.
 - Active the whole time, 12 hours after sign-in → the next action is refused with "session ended".
-- Wrong password in the sign-in prompt → generic message; the form still keeps its values.
+- Wrong password in the sign-in prompt → generic message; the Admin stays on the same view.
 - Browser closed and reopened → sign-in page shown.
 
-**Not included:** A warning or countdown before expiry (assumption: none).
+**Not included:** A warning or countdown before expiry (assumption: none); checking that a product form keeps its values (R001 BL-01, BL-04, BL-08, per R001 BR-049).
 
 ### BL-06 — Change password
 
@@ -371,7 +376,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** System operator, Admin
 
-**Spec brief:** There is no self-service reset. The system operator sets a new password through the setup values with an explicit reset indication (BR-033). At startup, the system checks the new password (BR-007), replaces the stored hash (BR-008), clears any lockout and ends every Admin session (QE-05). An invalid new password is not applied and the old one stays valid (BR-037). Without the reset indication, the setup values are ignored (BR-004). [NEEDS CLARIFICATION: recovery method, Open question 3]
+**Spec brief:** There is no self-service reset. The system operator sets a new password through the setup values with an explicit reset indication (BR-033). At startup, the system checks the new password (BR-007), replaces the stored hash (BR-008), clears any lockout and ends every Admin session (QE-05). An invalid new password is not applied and the old one stays valid (BR-037). Without the reset indication, the setup values are ignored (BR-004).
 
 **Key scenarios:**
 - Reset with a valid new password → the new password signs in; the old one is refused.
@@ -442,11 +447,11 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 ## Open questions
 
-- [ ] 1. How is the single Admin account first created, given that self-registration is forbidden (P1)? A) The system creates it at startup from setup values the system operator puts in the environment. B) A first-run setup page, which the first visitor could claim and which is an extra page without authentication. C) A separate command run outside the application. (affects: BR-002, BR-003, BR-004, BL-01)
+- [x] 1. How is the single Admin account first created, given that self-registration is forbidden (P1)? A) The system creates it at startup from setup values the system operator puts in the environment. B) A first-run setup page, which the first visitor could claim and which is an extra page without authentication. C) A separate command run outside the application. (affects: BR-002, BR-003, BR-004, BL-01)
 - [ ] 2. Is changing the password in scope, and must the initial password be replaced at the first sign-in? (affects: BR-028–BR-032, BL-06 priority, BL-02 if the change is forced)
-- [ ] 3. How does the Admin recover a forgotten password? A) The system operator resets it through the setup values. B) Not supported. C) Email reset, which needs an architecture change. (affects: BR-033, BL-07)
-- [ ] 4. The existing health check, and the OpenAPI document mapped in Development, answer without a session, which conflicts with P5. Require a session for them, remove them, or amend the constitution to allow them? (affects: BR-014, BL-02)
-- [ ] 5. Lockout: how many failed sign-in attempts, how long a lockout, and does it apply to the whole account or per source of the attempts? (affects: BR-016, BG-03, BL-03)
+- [x] 3. How does the Admin recover a forgotten password? A) The system operator resets it through the setup values. B) Not supported. C) Email reset, which needs an architecture change. (affects: BR-033, BL-07)
+- [x] 4. The existing health check, and the OpenAPI document mapped in Development, answer without a session, which conflicts with P5. Require a session for them, remove them, or amend the constitution to allow them? (affects: BR-014, BL-02)
+- [x] 5. Lockout: how many failed sign-in attempts, how long a lockout, and does it apply to the whole account or per source of the attempts? (affects: BR-016, BG-03, BL-03)
 - [ ] 6. Idle timeout and maximum session length? (affects: BR-020, BR-021, BL-05)
 - [ ] 7. Is a "keep me signed in" option wanted, or does closing the browser end the session? (affects: BR-022, BL-05)
 - [ ] 8. Is the sign-in name a username chosen at setup or an email address? (affects: BR-005, glossary, BL-01, BL-02)
@@ -454,7 +459,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 - [ ] 10. When the session has ended mid-work, should signing in again happen in a prompt over the current view, keeping the form (R001 BR-049), or on the sign-in page? (affects: BR-024, BR-025, BL-05)
 - [ ] 11. After sign-in, show the requested page or always the product management page? (affects: BR-011, BL-02)
 - [ ] 12. May the Admin be signed in from several browsers at once? (affects: BR-015, BR-031, BL-02, BL-06)
-- [ ] 13. Build order with R001 (review finding, critical). R001 needs R002 first, but some R002 scenarios rely on R001 pages and forms. Recommended: R002 BL-02 delivers an empty, protected product management page (layout with sign-out) that R001 BL-02 fills in; R002 scenarios use only that page; checking that "the add form keeps its values" stays with R001 BL-01, BL-04 and BL-08 (R001 BR-049); and all R002 P1 items (BL-01 to BL-05) are built before R001 BL-01. Alternative: build only R002 BL-01 and BL-02 first, and BL-03 to BL-05 after R001 BL-01. (affects: Constraints, Risks, Backlog note, BL-02, BL-04, BL-05 scenarios)
+- [x] 13. Build order with R001 (review finding, critical). R001 needs R002 first, but some R002 scenarios rely on R001 pages and forms. Recommended: R002 BL-02 delivers an empty, protected product management page (layout with sign-out) that R001 BL-02 fills in; R002 scenarios use only that page; checking that "the add form keeps its values" stays with R001 BL-01, BL-04 and BL-08 (R001 BR-049); and all R002 P1 items (BL-01 to BL-05) are built before R001 BL-01. Alternative: build only R002 BL-01 and BL-02 first, and BL-03 to BL-05 after R001 BL-01. (affects: Constraints, Risks, Backlog note, BL-02, BL-04, BL-05 scenarios)
 - [ ] 14. Attempts during a lockout: are they counted, do they extend the lockout, are they logged, and does the attempt that triggers the lockout already show the lockout message? Recommended: not counted, no extension, logged; the Nth failure shows the lockout message. Should a wrong current password in a password change be part of the "Failed sign-in attempt" definition? (affects: BR-016, BR-018, BG-03, glossary, BL-03)
 - [ ] 15. What does a system restart do to Admin sessions and to an active lockout? Recommended: the lockout survives a restart (only recovery clears it); state whether sessions survive. (affects: BR-016, BR-020, BR-021, BR-033, R001 BR-049, BL-03, BL-05, BL-07)
 - [ ] 16. Logging: may the entered sign-in name be logged with a failed sign-in attempt (it may contain a password typed in the wrong field)? Are successful sign-ins, sign-outs, password changes and recoveries logged too? (affects: BR-019, QE-03, BL-03)
@@ -464,6 +469,11 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 | Date | Question | Decision |
 |------|----------|----------|
+| 2026-10-16 | Q13: build order with R001 | All R002 P1 items (BL-01–BL-05) before R001 BL-01; R002 BL-02 delivers an empty, protected product management page; R002 scenarios use only that page; form-keeps-values checks stay in R001 |
+| 2026-10-16 | Q1: how the Admin account is first created | At system start, when no Admin account exists, from setup values in the environment; no setup page, no separate command |
+| 2026-10-16 | Q4: health check and Development OpenAPI document vs. P5 | Both require a signed-in Admin session; no constitution amendment |
+| 2026-10-16 | Q5: lockout threshold, duration and scope | 5 failed attempts in a row lock sign-in for 15 minutes, for the whole Admin account regardless of source |
+| 2026-10-16 | Q3: recovering a forgotten password | The system operator puts a reset indication and a new password in the setup values and restarts; the system replaces the password, clears any lockout and ends every Admin session; no self-service or email reset |
 
 ## Revision history
 
