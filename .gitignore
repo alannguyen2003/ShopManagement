@@ -1,0 +1,3 @@
+# SDD kit: approval token and personal settings
+.claude/state/
+.claude/settings.local.json

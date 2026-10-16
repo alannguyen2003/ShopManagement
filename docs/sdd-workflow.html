@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Lộ trình SDD</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Be+Vietnam+Pro:ital,wght@0,400;0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: một "tuyến đường" dọc — mỗi chặng có cột số chặng bên trái (sticky) và các bước bên phải; cổng duyệt của con người được đánh dấu màu hổ phách như con dấu trên hồ sơ. */
+:root {
+  --paper: #F4F6F9;
+  --surface: #FFFFFF;
+  --ink: #142033;
+  --muted: #586579;
+  --line: #D8DEE7;
+  --accent: #2650B8;
+  --accent-soft: #E3EAFA;
+  --gate: #A85F0A;
+  --gate-soft: #FBEEDB;
+  --ok: #1B7A52;
+  --ok-soft: #DDF2E8;
+  --warn: #B42318;
+  --code-bg: #EBEFF5;
+  --display: "Bricolage Grotesque", "Be Vietnam Pro", system-ui, sans-serif;
+  --body: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+  --radius: 10px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E131B; --surface: #151C27; --ink: #E5EAF1; --muted: #9AA6B7; --line: #263042;
+    --accent: #86A6F2; --accent-soft: #1C2843; --gate: #E7A653; --gate-soft: #33260F;
+    --ok: #56C894; --ok-soft: #12301F; --warn: #F2877E; --code-bg: #1B2331;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E131B; --surface: #151C27; --ink: #E5EAF1; --muted: #9AA6B7; --line: #263042;
+  --accent: #86A6F2; --accent-soft: #1C2843; --gate: #E7A653; --gate-soft: #33260F;
+  --ok: #56C894; --ok-soft: #12301F; --warn: #F2877E; --code-bg: #1B2331;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 16px/1.65 var(--body);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--paper); }
+.wrap { max-width: 1100px; margin: 0 auto; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.15; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.2rem, 5.5vw, 3.6rem); font-weight: 800; letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.6rem, 3.4vw, 2.2rem); font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.2rem; font-weight: 700; }
+p { margin: 0; max-width: 68ch; }
+a { color: var(--accent); }
+code, .mono { font-family: var(--mono); font-size: 0.86em; }
+:not(pre) > code { background: var(--code-bg); padding: 0.1em 0.38em; border-radius: 4px; overflow-wrap: anywhere; }
+.eyebrow { font: 600 0.74rem/1 var(--body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+
+/* ---------- Hero ---------- */
+.hero { padding-block: 56px 36px; display: grid; gap: 22px; }
+.hero .lede { font-size: 1.15rem; color: var(--muted); max-width: 62ch; }
+.statusline { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-family: var(--mono); font-size: 0.85rem; }
+.stamp { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1.5px solid currentColor; border-radius: 4px; font: 600 0.78rem/1.4 var(--mono); letter-spacing: 0.04em; text-transform: uppercase; }
+.stamp.draft { color: var(--muted); }
+.stamp.approved { color: var(--gate); transform: rotate(-2deg); }
+.stamp.done { color: var(--ok); }
+.arrow { color: var(--muted); }
+
+.ideas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 8px; }
+.idea { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+.idea b { font-family: var(--display); font-size: 1.05rem; }
+.idea span { color: var(--muted); font-size: 0.93rem; }
+@media (max-width: 860px) { .ideas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .ideas { grid-template-columns: 1fr; } }
+
+/* ---------- Sticky nav ---------- */
+.nav { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--paper); border-bottom: 1px solid var(--line); padding-block: 10px; display: flex; gap: 14px; align-items: center; }
+.nav ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; }
+.nav ol::-webkit-scrollbar { display: none; }
+.nav a { display: block; white-space: nowrap; text-decoration: none; color: var(--ink); font-size: 0.86rem; font-weight: 500; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); }
+.nav a:hover { border-color: var(--accent); color: var(--accent); }
+.nav a .n { font-family: var(--mono); color: var(--muted); margin-right: 5px; }
+.progress { flex: none; display: flex; align-items: center; gap: 8px; font: 600 0.8rem var(--mono); color: var(--muted); }
+.bar { width: 90px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .3s; }
+@media (max-width: 560px) { .progress .bar { display: none; } }
+
+/* ---------- Map ---------- */
+.section { padding-block: 48px; border-bottom: 1px solid var(--line); display: grid; gap: 22px; }
+.map-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+.map { min-width: 900px; padding: 22px; display: grid; gap: 14px; }
+.lane { display: grid; grid-template-columns: 150px 1fr; gap: 14px; align-items: center; }
+.lane-name { font: 600 0.78rem/1.3 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.lane-name small { display: block; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.flow { display: flex; align-items: center; flex-wrap: nowrap; gap: 6px; }
+.chip { font: 600 0.78rem/1.2 var(--mono); padding: 7px 9px; border-radius: 6px; background: var(--code-bg); color: var(--ink); white-space: nowrap; }
+.chip.gate { background: var(--gate-soft); color: var(--gate); border: 1.5px dashed var(--gate); }
+.chip.auto { background: var(--accent-soft); color: var(--accent); }
+.chip.end { background: var(--ok-soft); color: var(--ok); }
+.flow .to { color: var(--muted); font-size: 0.85rem; }
+.map-legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 0.86rem; color: var(--muted); }
+.map-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.map-legend .chip { padding: 3px 7px; }
+
+/* ---------- Roles ---------- */
+.roles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+.role { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; display: grid; gap: 10px; align-content: start; }
+.role h3 { font-size: 1.05rem; }
+.role ul { margin: 0; padding-left: 18px; font-size: 0.92rem; color: var(--muted); display: grid; gap: 4px; }
+.role.you { border-color: var(--gate); box-shadow: inset 0 0 0 1px var(--gate); }
+@media (max-width: 900px) { .roles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .roles { grid-template-columns: 1fr; } }
+
+/* ---------- Stage ---------- */
+.stage { padding-block: 56px; border-bottom: 1px solid var(--line); display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 32px; }
+.stage-head { position: sticky; top: 76px; align-self: start; display: grid; gap: 8px; }
+.stage-num { font: 800 4.2rem/0.9 var(--display); color: var(--accent); letter-spacing: -0.04em; }
+.stage-head p { font-size: 0.92rem; color: var(--muted); }
+.stage-head .where { font: 500 0.78rem/1.4 var(--mono); color: var(--muted); }
+.steps { display: grid; gap: 18px; min-width: 0; }
+.stage-intro { display: grid; gap: 10px; }
+@media (max-width: 820px) {
+  .stage { grid-template-columns: 1fr; gap: 20px; }
+  .stage-head { position: static; }
+  .stage-num { font-size: 3rem; }
+}
+
+.step { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; display: grid; gap: 14px; min-width: 0; }
+.step.is-gate { border: 1.5px solid var(--gate); }
+.step.is-done { border-color: var(--ok); }
+.step-top { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 10px; }
+.step-title { display: flex; align-items: baseline; gap: 10px; min-width: 0; }
+.step-id { font: 600 0.8rem var(--mono); color: var(--muted); flex: none; }
+.tag { font: 600 0.7rem/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; padding: 5px 8px; border-radius: 4px; }
+.tag.gate { background: var(--gate-soft); color: var(--gate); }
+.tag.auto { background: var(--accent-soft); color: var(--accent); }
+.tag.opt { background: var(--code-bg); color: var(--muted); }
+.done-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 0.84rem; color: var(--muted); cursor: pointer; user-select: none; }
+.done-toggle input { accent-color: var(--ok); width: 16px; height: 16px; cursor: pointer; }
+
+.cmd { position: relative; margin: 0; background: var(--code-bg); border-radius: 8px; padding: 12px 70px 12px 14px; overflow-x: auto; font: 400 0.88rem/1.55 var(--mono); white-space: pre-wrap; word-break: break-word; }
+.cmd .p { color: var(--accent); font-weight: 600; }
+.copy { position: absolute; top: 8px; right: 8px; font: 600 0.74rem var(--body); padding: 4px 9px; border-radius: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); cursor: pointer; }
+.copy:hover { border-color: var(--accent); color: var(--accent); }
+
+.cols { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 640px) { .cols { grid-template-columns: 1fr; } }
+.block { display: grid; gap: 6px; min-width: 0; }
+.block .eyebrow { margin-bottom: 2px; }
+.block ol, .block ul { margin: 0; padding-left: 20px; display: grid; gap: 4px; font-size: 0.94rem; }
+.files { list-style: none; padding: 0 !important; }
+.files li { font: 400 0.82rem/1.5 var(--mono); padding: 4px 8px; border-left: 2px solid var(--accent); background: var(--accent-soft); border-radius: 0 4px 4px 0; overflow-wrap: anywhere; }
+.checklist { list-style: none; padding: 0 !important; }
+.checklist li { position: relative; padding-left: 26px; }
+.checklist li::before { content: ""; position: absolute; left: 2px; top: 0.35em; width: 13px; height: 13px; border: 1.5px solid var(--gate); border-radius: 3px; }
+.note { font-size: 0.9rem; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; padding: 10px 14px; color: var(--muted); }
+.note b { color: var(--ink); }
+.example { font-size: 0.9rem; border-left: 3px solid var(--muted); padding: 2px 0 2px 12px; color: var(--muted); }
+.example b { color: var(--ink); font-weight: 600; }
+
+/* ---------- Tables ---------- */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font: 600 0.74rem/1.3 var(--body); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); background: var(--paper); white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td code { white-space: nowrap; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- Side lanes / reference ---------- */
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 22px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.panel p, .panel li { font-size: 0.94rem; }
+.panel ul, .panel ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.panel.wide { grid-column: 1 / -1; }
+.verdict { display: inline-block; font: 600 0.72rem/1 var(--body); letter-spacing: 0.06em; text-transform: uppercase; padding: 4px 7px; border-radius: 4px; white-space: nowrap; }
+.verdict.deny { background: var(--gate-soft); color: var(--warn); }
+.verdict.ask { background: var(--gate-soft); color: var(--gate); }
+.verdict.allow { background: var(--ok-soft); color: var(--ok); }
+.chain { font: 400 0.82rem/1.9 var(--mono); background: var(--code-bg); border-radius: 8px; padding: 12px 14px; overflow-x: auto; white-space: nowrap; }
+.chain b { color: var(--gate); font-weight: 600; }
+
+.finish { background: var(--ok-soft); border: 1.5px solid var(--ok); border-radius: var(--radius); padding: 22px 24px; display: grid; gap: 12px; }
+.finish h3 { color: var(--ok); }
+.finish ul { margin: 0; padding-left: 20px; display: grid; gap: 5px; }
+
+.tips { counter-reset: tip; list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 28px; }
+.tips li { counter-increment: tip; display: grid; grid-template-columns: 30px 1fr; gap: 8px; font-size: 0.95rem; }
+.tips li::before { content: counter(tip); font: 700 1.1rem/1.4 var(--display); color: var(--accent); }
+@media (max-width: 700px) { .tips { grid-template-columns: 1fr; } }
+
+footer { padding-block: 36px 56px; color: var(--muted); font-size: 0.88rem; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
+footer button { font: 500 0.85rem var(--body); background: none; border: 1px solid var(--line); color: var(--muted); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <span class="eyebrow">Spec-Driven Development · Claude Code kit</span>
+  <h1>Từ yêu cầu thô đến sản phẩm chạy được</h1>
+  <p class="lede">Bản đồ từng bước để build một app hoàn chỉnh bằng bộ lệnh <code>/sdd-*</code> trong repo này. Mỗi bước ghi rõ bạn gõ gì, Claude làm gì, file nào được tạo ra và bạn cần kiểm tra gì trước khi đi tiếp.</p>
+  <div class="statusline" aria-label="Vòng đời của một tài liệu">
+    <span class="muted">**Status:**</span>
+    <span class="stamp draft">Draft</span><span class="arrow">→</span>
+    <span class="stamp approved">Approved</span><span class="arrow">→</span>
+    <span class="stamp done">Done</span>
+  </div>
+  <div class="ideas">
+    <div class="idea"><b>Tài liệu trước, code sau</b><span>spec (cái gì, vì sao) → plan (làm thế nào) → tasks (thứ tự). Code chỉ được viết khi cả ba đã duyệt.</span></div>
+    <div class="idea"><b>Chỉ bạn được duyệt</b><span>Tài liệu chỉ lên <code>Approved</code> khi chính bạn gõ <code>/sdd-approve</code>. Hook chặn mọi đường khác.</span></div>
+    <div class="idea"><b>Test trước code</b><span>TDD từng task. Mỗi yêu cầu truy được tới task, test và bằng chứng <code>file:line</code>.</span></div>
+    <div class="idea"><b>Thay đổi có dấu vết</b><span>Sửa tài liệu đã duyệt phải qua <code>/sdd-amend</code>: tăng Revision, quay về Draft, duyệt lại.</span></div>
+    <div class="idea"><b>Một kiến trúc, một danh sách thư viện</b><span>Code nằm đúng chỗ <code>docs/architecture.md</code> quy định. Chỉ cài được package có trong bảng "Allowed dependencies".</span></div>
+    <div class="idea"><b>Không gì ra ngoài khi chưa được phép</b><span>Push, publish, deploy bị chặn hẳn. Gọi mạng ra ngoài, ghi lên GitHub, MCP… phải chờ bạn xác nhận.</span></div>
+  </div>
+</header>
+
+<nav class="nav" aria-label="Các chặng">
+  <ol>
+    <li><a href="#map">Bản đồ</a></li>
+    <li><a href="#s0"><span class="n">0</span>Chuẩn bị</a></li>
+    <li><a href="#s1"><span class="n">1</span>Phân tích yêu cầu</a></li>
+    <li><a href="#s2"><span class="n">2</span>Chốt spec</a></li>
+    <li><a href="#s3"><span class="n">3</span>Plan &amp; tasks</a></li>
+    <li><a href="#s4"><span class="n">4</span>Build</a></li>
+    <li><a href="#s5"><span class="n">5</span>Verify &amp; PR</a></li>
+    <li><a href="#s6"><span class="n">6</span>Lặp &amp; hoàn thiện</a></li>
+    <li><a href="#change">Thay đổi &amp; bug</a></li>
+    <li><a href="#guard">Lan can</a></li>
+    <li><a href="#ref">Tra cứu</a></li>
+  </ol>
+  <div class="progress" title="Số bước bạn đã đánh dấu xong"><div class="bar"><i id="bar"></i></div><span id="count">0/0</span></div>
+</nav>
+
+<!-- ================= MAP ================= -->
+<section class="section" id="map">
+  <div class="stage-intro">
+    <span class="eyebrow">Toàn cảnh</span>
+    <h2>Ba làn đường, một đích đến</h2>
+    <p class="muted">Yêu cầu lớn hoặc còn thô đi làn phân tích (BA) để tách thành backlog. Mỗi mục backlog trở thành một feature đi qua làn chính. Bug nhỏ đi làn nhanh. Cả ba gặp nhau ở build → verify → PR.</p>
+  </div>
+  <div class="map-scroll">
+    <div class="map">
+      <div class="lane">
+        <div class="lane-name">Một lần<small>khởi tạo dự án</small></div>
+        <div class="flow"><span class="chip">/sdd-init</span><span class="to">→</span><span class="chip">/sdd-constitution</span><span class="to">→</span><span class="chip gate">bạn đọc &amp; commit</span><span class="to">→</span><span class="chip">/sdd-scaffold</span><span class="to">→</span><span class="chip gate">bạn đọc architecture.md</span></div>
+      </div>
+      <div class="lane">
+        <div class="lane-name">Làn BA<small>yêu cầu lớn, thô</small></div>
+        <div class="flow"><span class="chip">/sdd-ba</span><span class="to">→</span><span class="chip">/sdd-clarify R001</span><span class="to">→</span><span class="chip gate">✔ requirements</span><span class="to">→</span><span class="chip auto">/sdd-ba-spec (tự chạy)</span><span class="to">→</span><span class="chip">1 spec + 1 nhánh / mục backlog</span></div>
+      </div>
+      <div class="lane">
+        <div class="lane-name">Làn feature<small>lặp cho từng spec</small></div>
+        <div class="flow"><span class="chip">/sdd-spec*</span><span class="to">→</span><span class="chip">/sdd-clarify</span><span class="to">→</span><span class="chip gate">✔ spec</span><span class="to">→</span><span class="chip">/sdd-plan</span><span class="to">→</span><span class="chip gate">✔ plan</span><span class="to">→</span><span class="chip">/sdd-tasks</span><span class="to">→</span><span class="chip gate">✔ tasks</span><span class="to">→</span><span class="chip">/sdd-build</span><span class="to">→</span><span class="chip">/sdd-verify</span><span class="to">→</span><span class="chip">/sdd-pr</span><span class="to">→</span><span class="chip end">merge</span></div>
+      </div>
+      <div class="lane">
+        <div class="lane-name">Làn fix<small>bug nhỏ, ≤ 3 file</small></div>
+        <div class="flow"><span class="chip">/sdd-fix</span><span class="to">→</span><span class="chip gate">✔ fix</span><span class="to">→</span><span class="chip">/sdd-build</span><span class="to">→</span><span class="chip">/sdd-verify</span><span class="to">→</span><span class="chip">/sdd-pr</span><span class="to">→</span><span class="chip end">merge</span></div>
+      </div>
+      <div class="lane">
+        <div class="lane-name">Bất cứ lúc nào</div>
+        <div class="flow"><span class="chip">/sdd-status</span><span class="chip">/sdd-analyze</span><span class="chip">/sdd-amend</span><span class="chip">/sdd-architecture</span><span class="to">·</span><span class="muted" style="font-size:.85rem">định kỳ</span><span class="chip">/sdd-retro</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="map-legend">
+    <span><span class="chip gate">✔ …</span> cổng duyệt: chỉ bạn gõ <code>/sdd-approve</code></span>
+    <span><span class="chip auto">tự chạy</span> Claude chạy ngay sau khi bạn duyệt</span>
+    <span>* <code>/sdd-spec</code> chỉ dùng khi bỏ qua làn BA (một feature nhỏ, rõ ràng)</span>
+  </div>
+
+  <div class="stage-intro" style="margin-top:14px">
+    <span class="eyebrow">Ai làm gì</span>
+    <h3>Bốn vai trong quy trình</h3>
+  </div>
+  <div class="roles">
+    <div class="role you">
+      <h3>Bạn</h3>
+      <ul>
+        <li>Gõ lệnh để chuyển chặng</li>
+        <li>Trả lời câu hỏi làm rõ</li>
+        <li>Đọc kỹ rồi <code>/sdd-approve</code></li>
+        <li>Quyết định thư viện mới bằng <code>/sdd-architecture</code></li>
+        <li>Xác nhận hành động ra bên ngoài; tự push, mở và merge PR</li>
+      </ul>
+    </div>
+    <div class="role">
+      <h3>Claude (phiên chính)</h3>
+      <ul>
+        <li>Scaffold dự án, viết spec, plan, tasks</li>
+        <li>Giao từng task cho <code>software-engineer</code>, tự kiểm lại bằng test</li>
+        <li>Tạo nhánh, commit theo quy ước</li>
+        <li>Dừng lại khi tài liệu sai, đề xuất <code>/sdd-amend</code></li>
+      </ul>
+    </div>
+    <div class="role">
+      <h3>Subagent</h3>
+      <ul>
+        <li><code>software-engineer</code> · Sonnet · <b>người duy nhất viết code</b></li>
+        <li>Còn lại chỉ đọc:</li>
+        <li><code>business-analyst</code> · Opus</li>
+        <li><code>spec-reviewer</code> · Opus</li>
+        <li><code>code-reviewer</code> · Sonnet</li>
+        <li><code>security-reviewer</code>, <code>acceptance-verifier</code> · Opus</li>
+        <li><code>e2e-tester</code> · Sonnet, <code>test-runner</code> · Haiku</li>
+      </ul>
+    </div>
+    <div class="role">
+      <h3>Hook (tự động)</h3>
+      <ul>
+        <li>Đầu phiên: in trạng thái và bước tiếp theo</li>
+        <li>Cổng duyệt: chặn tự set <code>Approved</code></li>
+        <li>Cổng code: chặn sửa code khi tài liệu chưa duyệt</li>
+        <li>Cổng kiến trúc + chặn dependency ngoài danh sách</li>
+        <li>Chặn hoặc hỏi trước hành động ra bên ngoài</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= STAGE 0 ================= -->
+<section class="stage" id="s0">
+  <div class="stage-head">
+    <span class="eyebrow">Chặng</span>
+    <span class="stage-num">0</span>
+    <h2>Chuẩn bị</h2>
+    <p>Làm một lần cho cả dự án, khoảng 10 phút.</p>
+    <span class="where">nhánh: main</span>
+  </div>
+  <div class="steps">
+    <div class="note"><b>Cần có:</b> <code>git</code>, <code>node</code> ≥ 20 và .NET SDK (bản LTS) trên PATH. Thiếu Node thì toàn bộ hook không chạy. Claude không tự cài các công cụ này. Ví dụ xuyên suốt trang này: một <b>app quản lý nghỉ phép nội bộ</b> tên <code>LeaveManager</code>.</div>
+
+    <article class="step" data-step="0.1">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">0.1</span><h3>Khởi tạo kit</h3></div>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-init</span> Nghỉ Phép — Ứng dụng xin và duyệt nghỉ phép cho nhân viên công ty</code></pre>
+      <div class="cols">
+        <div class="block"><span class="eyebrow">Claude làm</span>
+          <ol>
+            <li>Kiểm tra git, node; dò file stack (<code>package.json</code>, <code>pyproject.toml</code>, <code>*.csproj</code>…) để đoán lệnh test/lint.</li>
+            <li>Hỏi bạn một lượt: <code>git init -b main</code>? Lệnh đoán được có đúng không?</li>
+            <li>Điền tên dự án và "Project commands" trong <code>CLAUDE.md</code>, thêm quyền chạy test/lint vào <code>settings.json</code>.</li>
+            <li>Chạy thử <code>sdd-status.js</code>, hỏi trước rồi commit <code>chore: init SDD kit</code>.</li>
+          </ol>
+        </div>
+        <div class="block"><span class="eyebrow">Tạo / sửa</span>
+          <ul class="files"><li>CLAUDE.md</li><li>.claude/settings.json</li><li>.gitignore</li></ul>
+        </div>
+      </div>
+      <p class="note"><b>Dự án mới chưa có code?</b> Cứ để trống lệnh test/lint. <code>/sdd-scaffold</code> ở bước 0.3 sẽ điền.</p>
+    </article>
+
+    <article class="step is-gate" data-step="0.2">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">0.2</span><h3>Viết hiến pháp dự án</h3></div>
+        <span class="tag gate">Bạn chốt</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-constitution</span> App nội bộ cho 200 nhân viên. Ưu tiên dễ bảo trì và bảo mật hơn tốc độ ra mắt. Bắt buộc TDD, coverage ≥ 80%. Không bao giờ lưu mật khẩu dạng plain text.</code></pre>
+      <div class="cols">
+        <div class="block"><span class="eyebrow">Claude làm</span>
+          <ol>
+            <li>Phỏng vấn tối đa 5 câu (sản phẩm và quy mô, chất lượng ưu tiên, chiến lược test, ràng buộc kỹ thuật, điều cấm).</li>
+            <li>Viết 5–10 nguyên tắc dạng <b>MUST / MUST NOT</b>, mỗi nguyên tắc có một dòng lý do và một dòng "How to verify".</li>
+            <li>Không commit. Bạn commit sau khi đọc.</li>
+          </ol>
+        </div>
+        <div class="block"><span class="eyebrow">Tạo</span>
+          <ul class="files"><li>docs/constitution.md (Version 1.0.0)</li></ul>
+        </div>
+      </div>
+      <div class="block"><span class="eyebrow">Bạn kiểm tra</span>
+        <ul class="checklist">
+          <li>Mỗi nguyên tắc có thể kiểm chứng được (bằng test, lint, review)?</li>
+          <li>Không có nguyên tắc nào dính tới chi tiết của một feature cụ thể?</li>
+          <li>Đây là luật cao nhất: mọi plan đều bị đối chiếu với nó. Sửa trực tiếp nếu cần, rồi tự commit.</li>
+        </ul>
+      </div>
+    </article>
+
+    <article class="step is-gate" data-step="0.3">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">0.3</span><h3>Dựng khung dự án</h3></div>
+        <span class="tag gate">Bạn chọn stack</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-scaffold</span> LeaveManager</code></pre>
+      <div class="cols">
+        <div class="block"><span class="eyebrow">Claude hỏi một lượt (4 câu)</span>
+          <ul>
+            <li><b>Frontend:</b> Next.js (App Router) hoặc React + Vite. Backend luôn là <b>.NET + Clean Architecture</b>, không hỏi.</li>
+            <li><b>Database:</b> PostgreSQL, SQL Server, SQLite, hoặc chọn sau.</li>
+            <li><b>Styling:</b> Tailwind CSS hoặc CSS Modules.</li>
+            <li><b>E2E:</b> Playwright hoặc chưa cần.</li>
+          </ul>
+        </div>
+        <div class="block"><span class="eyebrow">Tạo</span>
+          <ul class="files"><li>docs/architecture.md (viết trước tiên)</li><li>src/backend/ (solution + 4 project + 4 test project)</li><li>src/frontend/</li><li>CLAUDE.md → Project commands</li></ul>
+        </div>
+      </div>
+      <pre class="cmd"><code>src/backend/
+  src/LeaveManager.Domain          entity, value object, Result · không tham chiếu gì
+  src/LeaveManager.Application     use case, interface · chỉ tham chiếu Domain
+  src/LeaveManager.Infrastructure  database, mail, client ngoài · tham chiếu Application
+  src/LeaveManager.Api             Program.cs, endpoint, /health · composition root
+  tests/  Domain.Tests · Application.Tests · Api.IntegrationTests · ArchitectureTests
+src/frontend/
+  src/features/&lt;feature&gt;/ · src/shared/{ui, lib/api-client.ts, config}</code></pre>
+      <div class="block"><span class="eyebrow">Claude làm tiếp</span>
+        <ol>
+          <li>Chạy <code>dotnet new</code>, generator chính thức (<code>create-next-app</code> hoặc <code>create-vite</code>), cài Vitest + Testing Library.</li>
+          <li>Đối chiếu: mọi package đã cài đều phải có dòng trong bảng "Allowed dependencies".</li>
+          <li>Viết smoke test (<code>GET /health</code>, test kiến trúc theo tầng, trang chủ frontend). Build, lint, test phải xanh hết.</li>
+          <li>Điền "Project commands", thêm quyền vào <code>settings.json</code>, hỏi trước rồi commit <code>chore: scaffold …</code>.</li>
+        </ol>
+      </div>
+      <div class="block"><span class="eyebrow">Bạn kiểm tra <code>docs/architecture.md</code></span>
+        <ul class="checklist">
+          <li>Bảng tầng và quy ước thư mục đúng cách team bạn muốn viết code?</li>
+          <li>Bảng "Allowed dependencies" chỉ gồm những gì bạn chấp nhận lâu dài? Từ giờ, agent chỉ cài được những package này.</li>
+          <li>Mục "Forbidden" chặn đúng những việc bạn không muốn thấy?</li>
+        </ul>
+      </div>
+      <p class="note"><b>Quyền chỉ cho một lần chạy:</b> trong lúc chạy, hook cho phép ghi vào <code>src/</code> trên <code>main</code> và chạy generator. Quyền này mất ngay khi bạn gõ prompt khác. Bị ngắt giữa chừng thì gõ lại <code>/sdd-scaffold</code>, skill sẽ chạy tiếp từ bước còn thiếu.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ================= STAGE 1 ================= -->
+<section class="stage" id="s1">
+  <div class="stage-head">
+    <span class="eyebrow">Chặng</span>
+    <span class="stage-num">1</span>
+    <h2>Phân tích yêu cầu thô</h2>
+    <p>Biến ghi chú cuộc họp, email, tài liệu khách hàng thành backlog các feature vừa cỡ một spec.</p>
+    <span class="where">nhánh: main · docs/requirements/R001-…</span>
+  </div>
+  <div class="steps">
+    <div class="note"><b>Khi nào bỏ qua chặng này?</b> Nếu yêu cầu chỉ là một feature nhỏ và rõ ràng, gõ thẳng <code>/sdd-spec &lt;mô tả&gt;</code> rồi sang chặng 2. Nếu một feature cần hơn 5 user story, nhiều actor với mục tiêu riêng, hoặc cả một module, hãy dùng <code>/sdd-ba</code>.</div>
+
+    <article class="step" data-step="1.1">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">1.1</span><h3>Đưa yêu cầu thô vào</h3></div>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-ba</span> Nhân viên gửi đơn xin nghỉ phép online; quản lý duyệt trong vòng 2 ngày làm việc; HR xem được số ngày phép còn lại của mọi người.</code></pre>
+      <p class="example">Có thể đưa file: <b>/sdd-ba docs/inbox/leave-brief.md ghi chú buổi kickoff: …</b> (PDF được đọc từng trang).</p>
+      <div class="cols">
+        <div class="block"><span class="eyebrow">Claude làm</span>
+          <ol>
+            <li>Chuyển về <code>main</code>, lấy số <code>R001</code> tiếp theo.</li>
+            <li>Lưu đầu vào <b>nguyên văn</b> vào <code>input.md</code>, để mỗi quy tắc nghiệp vụ trỏ được về câu gốc.</li>
+            <li><code>business-analyst</code> phân tích: actor, mục tiêu <code>BG-</code>, quy trình <code>PR-</code>, quy tắc <code>BR-</code>, kỳ vọng chất lượng <code>QE-</code>, glossary, backlog <code>BL-</code>.</li>
+            <li><code>spec-reviewer</code> soát lại, rồi commit <code>docs(R001): draft requirements</code>.</li>
+          </ol>
+        </div>
+        <div class="block"><span class="eyebrow">Tạo</span>
+          <ul class="files"><li>docs/requirements/R001-leave-management/input.md</li><li>…/requirements.md (Draft, Rev 1)</li></ul>
+        </div>
+      </div>
+      <div class="block"><span class="eyebrow">Ví dụ backlog nhận được</span>
+        <div class="table-wrap"><table>
+          <thead><tr><th>ID</th><th>Feature</th><th>Ưu tiên</th><th>Cỡ</th><th>Phụ thuộc</th><th>Spec</th></tr></thead>
+          <tbody>
+            <tr><td><code>BL-01</code></td><td>Nhân viên gửi đơn nghỉ phép</td><td>P1</td><td>S</td><td>—</td><td>—</td></tr>
+            <tr><td><code>BL-02</code></td><td>Quản lý duyệt / từ chối đơn</td><td>P1</td><td>M</td><td>BL-01</td><td>—</td></tr>
+            <tr><td><code>BL-03</code></td><td>HR xem số ngày phép còn lại</td><td>P2</td><td>S</td><td>BL-01</td><td>—</td></tr>
+            <tr><td><code>BL-04</code></td><td>Nhắc khi đơn quá 2 ngày làm việc</td><td>P3</td><td>S</td><td>BL-02</td><td>—</td></tr>
+          </tbody>
+        </table></div>
+        <p class="muted" style="font-size:.85rem">Cỡ <code>S</code> ≤ 1 ngày, <code>M</code> 1–3 ngày. Không cho phép cỡ <code>L</code>: phải tách nhỏ.</p>
+      </div>
+    </article>
+
+    <article class="step" data-step="1.2">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">1.2</span><h3>Làm rõ yêu cầu</h3></div>
+        <span class="tag opt">Lặp lại nếu còn câu hỏi</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-clarify</span> R001</code></pre>
+      <div class="block"><span class="eyebrow">Cách hoạt động</span>
+        <ul>
+          <li>Claude hỏi <b>từng câu một</b>, tối đa 5 câu mỗi vòng, xếp theo mức ảnh hưởng: phạm vi &gt; bảo mật/dữ liệu &gt; trải nghiệm &gt; chi tiết nhỏ.</li>
+          <li>Mỗi câu có 2–4 lựa chọn, một lựa chọn được đề xuất kèm lý do. Trả lời "theo đề xuất" nếu bạn đồng ý.</li>
+          <li>Tài liệu được cập nhật ngay sau mỗi câu trả lời, ghi vào "Clarification log", commit <code>docs(R001): clarify requirements</code>.</li>
+        </ul>
+      </div>
+      <p class="example">Ví dụ câu hỏi: <b>"2 ngày làm việc" có tính ngày lễ không? Nếu quá hạn thì đơn tự duyệt, tự từ chối, hay chuyển lên cấp trên?</b></p>
+    </article>
+
+    <article class="step is-gate" data-step="1.3">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">1.3</span><h3>Duyệt backlog</h3></div>
+        <span class="tag gate">Cổng duyệt</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-approve</span> requirements R001</code></pre>
+      <div class="block"><span class="eyebrow">Bạn kiểm tra trước khi gõ</span>
+        <ul class="checklist">
+          <li>Mỗi quy tắc nghiệp vụ đúng là điều bạn đã nói (hoặc được ghi là giả định)? Cột <code>Source</code> trỏ về <code>input.md</code>.</li>
+          <li>Chỉ các mục P1 có đủ tạo thành bản phát hành đầu tiên dùng được?</li>
+          <li>Mỗi mục backlog nhỏ và tự mang lại giá trị?</li>
+          <li>"Out of scope" đúng ý bạn? Duyệt xong sẽ sinh <b>một spec và một nhánh cho mọi mục</b> trong backlog.</li>
+        </ul>
+      </div>
+      <p class="note"><b>Máy tự kiểm tra điều kiện:</b> không còn <code>[NEEDS CLARIFICATION]</code> hay câu hỏi mở; mọi BG/BR có trong bảng Traceability; mỗi mục có ưu tiên, cỡ S/M, spec brief, danh sách Covers; phụ thuộc không vòng; ít nhất một P1; mọi QE có con số. Thiếu điều kiện nào, Claude từ chối duyệt và nói cách sửa.</p>
+    </article>
+
+    <article class="step" data-step="1.4">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">1.4</span><h3>Sinh spec cho từng mục backlog</h3></div>
+        <span class="tag auto">Tự chạy sau 1.3</span>
+      </div>
+      <div class="cols">
+        <div class="block"><span class="eyebrow">Claude làm (<code>/sdd-ba-spec</code>)</span>
+          <ol>
+            <li>Sắp thứ tự: phụ thuộc trước, rồi P1 → P3.</li>
+            <li>Giữ chỗ số <code>NNN</code> trong cột <code>Spec</code> trên <code>main</code>, commit <code>docs(R001): reserve specs 001–004</code>.</li>
+            <li>Với mỗi mục: tạo nhánh <code>feat/NNN-slug</code> từ main, <code>business-analyst</code> soạn <code>spec.md</code> có <code>**Source:** R001/BL-XX</code>, <code>spec-reviewer</code> soát, commit.</li>
+            <li>Kết thúc ở nhánh của feature đầu tiên và in bảng tổng hợp.</li>
+          </ol>
+        </div>
+        <div class="block"><span class="eyebrow">Tạo (mỗi nhánh)</span>
+          <ul class="files"><li>specs/001-submit-leave-request/spec.md</li><li>specs/002-approve-leave-request/spec.md</li><li>specs/003-leave-balance-view/spec.md</li><li>specs/004-overdue-reminder/spec.md</li></ul>
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Backlog</th><th>Spec</th><th>Nhánh</th><th>Ưu tiên</th></tr></thead>
+        <tbody>
+          <tr><td>BL-01</td><td class="mono">001-submit-leave-request</td><td class="mono">feat/001-submit-leave-request</td><td>P1</td></tr>
+          <tr><td>BL-02</td><td class="mono">002-approve-leave-request</td><td class="mono">feat/002-approve-leave-request</td><td>P1</td></tr>
+          <tr><td>BL-03</td><td class="mono">003-leave-balance-view</td><td class="mono">feat/003-leave-balance-view</td><td>P2</td></tr>
+          <tr><td>BL-04</td><td class="mono">004-overdue-reminder</td><td class="mono">feat/004-overdue-reminder</td><td>P3</td></tr>
+        </tbody>
+      </table></div>
+    </article>
+  </div>
+</section>
+
+<!-- ================= STAGE 2 ================= -->
+<section class="stage" id="s2">
+  <div class="stage-head">
+    <span class="eyebrow">Chặng · mỗi feature</span>
+    <span class="stage-num">2</span>
+    <h2>Chốt spec</h2>
+    <p>Spec chỉ nói <b>cái gì</b> và <b>vì sao</b>, không nhắc tới framework, ngôn ngữ, database.</p>
+    <span class="where">nhánh: feat/001-submit-leave-request</span>
+  </div>
+  <div class="steps">
+    <div class="block"><span class="eyebrow">Trong một spec có gì</span>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Phần</th><th>Quy tắc</th><th>Ví dụ</th></tr></thead>
+        <tbody>
+          <tr><td>User story</td><td>Có ưu tiên P1/P2/P3. Riêng P1 phải đủ làm MVP.</td><td><code>US1</code> Gửi đơn nghỉ (P1)</td></tr>
+          <tr><td>Kịch bản chấp nhận</td><td>Dạng Given / When / Then, test được.</td><td>Given còn 5 ngày phép, When xin 3 ngày, Then đơn ở trạng thái "Chờ duyệt"</td></tr>
+          <tr><td>FR / NFR</td><td>NFR phải có con số đo được.</td><td><code>NFR-001</code> gửi đơn phản hồi &lt; 2 giây</td></tr>
+          <tr><td>Edge case</td><td>Dữ liệu rỗng, rất lớn, trùng, mất kết nối, thiếu quyền.</td><td>Xin nghỉ trùng ngày với đơn đã duyệt</td></tr>
+          <tr><td>Out of scope</td><td>Ghi rõ để chặn phình phạm vi.</td><td>Nghỉ nửa ngày, đồng bộ lịch Outlook</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <article class="step" data-step="2.1">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">2.1</span><h3>Làm rõ spec</h3></div>
+        <span class="tag opt">Lặp lại nếu còn câu hỏi</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-clarify</span></code></pre>
+      <p>Claude quét các marker <code>[NEEDS CLARIFICATION: …]</code>, tính từ không đo được ("nhanh", "an toàn", "nhiều"), luồng lỗi, quyền hạn, giới hạn chưa nói tới, và điều có thể vi phạm constitution. Hỏi từng câu, cập nhật spec, commit <code>docs(001): clarify spec</code>.</p>
+      <p class="note"><b>Không dùng làn BA?</b> Bước này bắt đầu bằng <code>/sdd-spec Nhân viên gửi đơn xin nghỉ phép…</code>: Claude tạo nhánh <code>feat/NNN-slug</code>, viết <code>spec.md</code>, cho <code>spec-reviewer</code> soát và commit.</p>
+    </article>
+
+    <article class="step is-gate" data-step="2.2">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">2.2</span><h3>Duyệt spec</h3></div>
+        <span class="tag gate">Cổng duyệt</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-approve</span> spec</code></pre>
+      <div class="block"><span class="eyebrow">Bạn kiểm tra trước khi gõ</span>
+        <ul class="checklist">
+          <li>Chỉ riêng story P1 đã mang lại giá trị (MVP)?</li>
+          <li>Nếu bạn là tester, bạn có biết phải kiểm gì cho từng kịch bản?</li>
+          <li>Mọi NFR có con số ("&lt; 2 giây", "tối đa 5 lần mỗi giờ")?</li>
+          <li>"Out of scope" đúng là điều bạn muốn loại ra?</li>
+        </ul>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ================= STAGE 3 ================= -->
+<section class="stage" id="s3">
+  <div class="stage-head">
+    <span class="eyebrow">Chặng · mỗi feature</span>
+    <span class="stage-num">3</span>
+    <h2>Thiết kế &amp; chia việc</h2>
+    <p>Plan và tasks là chỗ rẻ nhất để bắt lỗi. Đọc kỹ ở đây đỡ phải sửa code về sau.</p>
+    <span class="where">nhánh: feat/001-…</span>
+  </div>
+  <div class="steps">
+    <article class="step" data-step="3.1">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">3.1</span><h3>Lập plan kỹ thuật</h3></div>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-plan</span> Gửi mail qua SMTP sẵn có của công ty, lưu đơn trong PostgreSQL</code></pre>
+      <div class="cols">
+        <div class="block"><span class="eyebrow">Claude làm</span>
+          <ol>
+            <li>Đọc constitution, spec, plan của các feature đã xong; khảo sát codebase (giao cho <code>Explore</code> nếu repo lớn). Ưu tiên tái sử dụng.</li>
+            <li>Gặp quyết định lớn bạn chưa nói (thư viện, lưu trữ, dịch vụ ngoài) thì ghi <code>research.md</code> và hỏi bạn.</li>
+            <li>Viết <code>plan.md</code>: Constitution check, <b>Architecture check</b> (tầng nào, thư mục feature nào, mỗi package là <code>allowed</code> hay cần <code>/sdd-architecture</code>), bảng ánh xạ FR/NFR → thành phần, cấu trúc file, chiến lược test (đánh dấu kịch bản <code>e2e</code>).</li>
+            <li><code>spec-reviewer</code> soát, commit <code>docs(001): draft plan</code>.</li>
+          </ol>
+        </div>
+        <div class="block"><span class="eyebrow">Tạo</span>
+          <ul class="files"><li>plan.md (Spec revision, Constitution, Architecture version)</li><li>research.md (nếu cần)</li><li>data-model.md (nếu có dữ liệu)</li><li>contracts/ (API, schema)</li></ul>
+        </div>
+      </div>
+      <p class="note"><b>Stack đã chốt từ bước 0.3.</b> Phần chữ sau lệnh chỉ định hướng <i>trong</i> stack đó (có thể bỏ trống). Feature cần package chưa có trong danh sách thì plan ghi "requires /sdd-architecture", và bạn phải cho phép package đó trước khi duyệt plan.</p>
+    </article>
+
+    <article class="step is-gate" data-step="3.2">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">3.2</span><h3>Duyệt plan</h3></div>
+        <span class="tag gate">Cổng duyệt</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-approve</span> plan</code></pre>
+      <ul class="checklist">
+        <li>Constitution check: mỗi dòng "Violation" có lý do thuyết phục?</li>
+        <li>Architecture check: đúng tầng, đúng thư mục feature, mọi package đều <code>allowed</code>?</li>
+        <li>Thư viện mới có thật sự cần?</li>
+        <li>Cấu trúc file theo đúng quy ước của repo?</li>
+        <li>Mọi kịch bản có test; kịch bản cần kiểm qua UI có đánh dấu <code>e2e</code>?</li>
+      </ul>
+    </article>
+
+    <article class="step" data-step="3.3">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">3.3</span><h3>Chia task</h3></div>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-tasks</span></code></pre>
+      <div class="cols">
+        <div class="block"><span class="eyebrow">Cấu trúc tasks.md</span>
+          <ul>
+            <li><b>Setup</b> → <b>Foundation</b> (chặn mọi phase sau) → <b>một phase cho mỗi user story</b> theo P1, P2, P3 → <b>Polish</b>.</li>
+            <li>Mỗi phase story là một lát cắt dọc: xong là chạy và test được riêng.</li>
+            <li>Trong mỗi phase, task viết test luôn đứng <b>trước</b> task cài đặt.</li>
+            <li>Mỗi phase kết thúc bằng một <b>Checkpoint</b> chứng minh phase đã xong.</li>
+            <li>Bảng Traceability cuối file: FR/NFR/kịch bản → task.</li>
+          </ul>
+        </div>
+        <div class="block"><span class="eyebrow">Định dạng task</span>
+          <pre class="cmd"><code>- [ ] T004 [US1] Viết test gửi đơn hợp lệ — tests/LeaveManager.Application.Tests/LeaveRequests/SubmitLeaveRequestTests.cs
+- [ ] T005 [US1] Cài đặt use case gửi đơn — src/LeaveManager.Application/LeaveRequests/SubmitLeaveRequest/SubmitLeaveRequestHandler.cs
+- [ ] T006 [P] [US1] Form gửi đơn — src/frontend/src/features/leave-requests/components/LeaveForm.tsx</code></pre>
+          <p class="muted" style="font-size:.85rem"><code>[P]</code> chạy song song được (khác file, không phụ thuộc task dở). <code>[US1]</code> thuộc story nào.</p>
+        </div>
+      </div>
+    </article>
+
+    <article class="step" data-step="3.4">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">3.4</span><h3>Đối chiếu chéo</h3></div>
+        <span class="tag opt">Nên làm · chỉ đọc</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-analyze</span></code></pre>
+      <p>Không sửa file nào. Kiểm tra chuỗi revision, độ phủ (FR nào chưa có task), task thừa, tên entity/endpoint lệch nhau giữa các tài liệu, marker còn sót, vi phạm constitution. Báo cáo theo mức Critical / Warning / Suggestion, mỗi dòng kèm lệnh sửa. Một phút ở đây có thể cứu cả một phase build sai.</p>
+    </article>
+
+    <article class="step is-gate" data-step="3.5">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">3.5</span><h3>Duyệt tasks</h3></div>
+        <span class="tag gate">Cổng duyệt</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-approve</span> tasks</code></pre>
+      <p>Máy kiểm: spec và plan đã duyệt, <code>Plan revision</code> khớp, mọi FR và kịch bản có ít nhất một task, không task nào mơ hồ hay ghi "TODO". Sau bước này <b>cổng code mới mở</b>.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ================= STAGE 4 ================= -->
+<section class="stage" id="s4">
+  <div class="stage-head">
+    <span class="eyebrow">Chặng · mỗi feature</span>
+    <span class="stage-num">4</span>
+    <h2>Build bằng TDD</h2>
+    <p>Một task, một commit. Tiến độ nằm trong các ô checkbox, không nằm trong cuộc hội thoại.</p>
+    <span class="where">nhánh: feat/001-…</span>
+  </div>
+  <div class="steps">
+    <article class="step" data-step="4.1">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">4.1</span><h3>Build từng phase</h3></div>
+        <span class="tag opt">Lặp đến hết phase</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-build</span>              # phase đầu tiên chưa xong
+<span class="p">/sdd-build</span> phase 3      # một phase cụ thể
+<span class="p">/sdd-build</span> T007         # một task
+<span class="p">/sdd-build</span> all          # chạy hết, không dừng giữa các phase</code></pre>
+      <div class="cols">
+        <div class="block"><span class="eyebrow">Mỗi task</span>
+          <ol>
+            <li>Claude giao task cho <code>software-engineer</code>, kèm kịch bản chấp nhận và FR liên quan.</li>
+            <li>Agent đọc architecture, spec, plan, contract; viết test (hoặc code tối thiểu) <b>đúng tầng, đúng thư mục feature</b>; chỉ dùng package trong danh sách cho phép.</li>
+            <li>Claude tự kiểm bằng <code>test-runner</code>: test mới phải <b>fail đúng lý do</b>, code phải làm test pass. Không có file nào ngoài task bị đổi.</li>
+            <li>Test vẫn fail thì gửi lại cho agent, tối đa 3 vòng; quá 3 vòng thì dừng và báo nguyên nhân nghi ngờ.</li>
+            <li>Tick <code>- [x]</code>, commit <code>test(001): T004 …</code> hoặc <code>feat(001): T005 …</code>.</li>
+          </ol>
+        </div>
+        <div class="block"><span class="eyebrow">Cuối mỗi phase (Checkpoint)</span>
+          <ol>
+            <li>Chạy toàn bộ test và lint.</li>
+            <li>Thực hiện bước kiểm trong Checkpoint.</li>
+            <li><code>code-reviewer</code> soát diff của phase, kể cả lỗi kiến trúc (sai tầng, package lạ). <code>software-engineer</code> sửa các mục "Must fix", commit <code>fix(001): review phase 3</code>.</li>
+            <li><b>Dừng lại báo cáo</b> cho bạn.</li>
+          </ol>
+        </div>
+      </div>
+      <div class="note"><b>Khi agent báo <code>BLOCKED</code>:</b> đó là hành vi đúng. Tài liệu sai thì Claude đề xuất <code>/sdd-amend …</code>. Cần package chưa được phép hoặc chỗ đặt code mà kiến trúc chưa có thì đề xuất <code>/sdd-architecture …</code>. Sau đó Claude dừng lại chờ bạn quyết, không tự viết vòng qua. Xem mục <a href="#change">Thay đổi &amp; bug</a>.</div>
+      <div class="block"><span class="eyebrow">Mẹo</span>
+        <ul>
+          <li>Build từng phase một và đọc báo cáo ở mỗi checkpoint. Phase story P1 xong là có MVP.</li>
+          <li>Hội thoại dài thì gõ <code>/clear</code> giữa các phase; <code>/sdd-build</code> đọc checkbox và chạy tiếp ngay.</li>
+        </ul>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- ================= STAGE 5 ================= -->
+<section class="stage" id="s5">
+  <div class="stage-head">
+    <span class="eyebrow">Chặng · mỗi feature</span>
+    <span class="stage-num">5</span>
+    <h2>Kiểm chứng &amp; Pull Request</h2>
+    <p>Người kiểm chứng không chấm bài của chính mình, và phải đưa bằng chứng <code>file:line</code>.</p>
+    <span class="where">nhánh: feat/001-… → main</span>
+  </div>
+  <div class="steps">
+    <article class="step" data-step="5.1">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">5.1</span><h3>Kiểm chứng toàn feature</h3></div>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-verify</span></code></pre>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Agent (chạy song song)</th><th>Kiểm gì</th><th>Khi nào</th></tr></thead>
+        <tbody>
+          <tr><td><code>acceptance-verifier</code></td><td>Mỗi FR/NFR/SC/kịch bản: có code, có test ý nghĩa, kèm bằng chứng <code>file:line</code></td><td>Luôn luôn</td></tr>
+          <tr><td><code>test-runner</code></td><td>Toàn bộ test và lint</td><td>Luôn luôn</td></tr>
+          <tr><td><code>code-reviewer</code></td><td>Toàn bộ diff so với <code>main</code></td><td>Luôn luôn</td></tr>
+          <tr><td><code>security-reviewer</code></td><td>Xác thực, phân quyền, dữ liệu cá nhân, input ngoài, secrets</td><td>Khi feature chạm tới các mảng đó (không chắc thì chạy)</td></tr>
+          <tr><td><code>e2e-tester</code></td><td>Kịch bản loại <code>e2e</code> trên app đang chạy</td><td>Khi plan có kịch bản e2e</td></tr>
+        </tbody>
+      </table></div>
+      <div class="cols">
+        <div class="block"><span class="eyebrow">Kết quả</span>
+          <ul>
+            <li><b>READY TO MERGE</b>: mọi yêu cầu Pass có bằng chứng, test/lint xanh, không còn "Must fix". <code>tasks.md</code> chuyển sang <span class="stamp done" style="padding:0 6px">Done</span>.</li>
+            <li><b>NOT READY</b>: mỗi việc còn lại kèm lệnh xử lý: sửa ngay trong task hiện có, <code>/sdd-amend tasks</code> nếu thiếu task, <code>/sdd-amend spec</code> nếu spec sai. Sau đó chạy lại <code>/sdd-verify</code>.</li>
+          </ul>
+        </div>
+        <div class="block"><span class="eyebrow">Tạo</span>
+          <ul class="files"><li>specs/001-…/verification.md</li></ul>
+        </div>
+      </div>
+    </article>
+
+    <article class="step" data-step="5.2">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">5.2</span><h3>Soạn mô tả PR</h3></div>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-pr</span></code></pre>
+      <p>Claude viết <code>pr.md</code>: tóm tắt, tài liệu liên quan, bảng yêu cầu đã giao kèm bằng chứng, thay đổi chính, cách test thủ công, rủi ro và rollback, out of scope. Commit <code>docs(001): pr description</code>.</p>
+    </article>
+
+    <article class="step is-gate" data-step="5.3">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">5.3</span><h3>Push, review, merge</h3></div>
+        <span class="tag gate">Bạn làm</span>
+      </div>
+      <pre class="cmd"><code>git push -u origin feat/001-submit-leave-request
+gh pr create --base main --title "feat(001): Nhân viên gửi đơn nghỉ phép" --body-file specs/001-submit-leave-request/pr.md</code></pre>
+      <p>Claude bị cấm <code>git push</code> trong <code>settings.json</code>. Claude chỉ chạy lệnh <code>gh</code> khi bạn đã push và đồng ý rõ ràng. Team review, merge vào <code>main</code>, rồi gõ <code>/clear</code> trước feature tiếp theo.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ================= STAGE 6 ================= -->
+<section class="stage" id="s6">
+  <div class="stage-head">
+    <span class="eyebrow">Chặng</span>
+    <span class="stage-num">6</span>
+    <h2>Lặp đến khi hoàn chỉnh</h2>
+    <p>Đi lần lượt qua các mục backlog theo thứ tự bảng ở bước 1.4. Mỗi lúc chỉ một feature dở dang.</p>
+    <span class="where">feat/002 → feat/003 → feat/004</span>
+  </div>
+  <div class="steps">
+    <article class="step" data-step="6.1">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">6.1</span><h3>Chuyển sang feature kế tiếp</h3></div>
+        <span class="tag opt">Lặp cho mỗi mục backlog</span>
+      </div>
+      <pre class="cmd"><code>git switch feat/002-approve-leave-request
+git merge main        # đề xuất: kéo code của feature vừa merge vào nhánh này</code></pre>
+      <p>Rồi quay lại <a href="#s2">chặng 2</a>: <code>/sdd-clarify</code> → <code>/sdd-approve spec</code> → <code>/sdd-plan</code> → … → <code>/sdd-pr</code>.</p>
+      <p class="note"><b>Vì sao nên merge main?</b> Các nhánh feature được tạo từ <code>main</code> cùng lúc ở bước 1.4, trước khi có code nào. BL-02 phụ thuộc BL-01, nên plan của BL-02 cần thấy code BL-01 đã merge. Đây là đề xuất của trang này, kit không tự làm bước đó.</p>
+    </article>
+
+    <article class="step" data-step="6.2">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">6.2</span><h3>Theo dõi tiến độ và độ phủ</h3></div>
+        <span class="tag opt">Bất cứ lúc nào</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-status</span>           # đang ở đâu, bước tiếp theo, tài liệu nào ⚠ stale
+<span class="p">/sdd-analyze</span> R001     # mọi BR đã có mục backlog? mọi spec còn khớp mục của nó?</code></pre>
+      <p>Có thể hỏi tự nhiên: "còn lại gì?", "tài liệu có khớp nhau không?". Claude sẽ tự gọi hai lệnh chỉ-đọc này.</p>
+    </article>
+
+    <article class="step" data-step="6.3">
+      <div class="step-top">
+        <div class="step-title"><span class="step-id">6.3</span><h3>Nhìn lại quy trình</h3></div>
+        <span class="tag opt">Mỗi 2–3 feature</span>
+      </div>
+      <pre class="cmd"><code><span class="p">/sdd-retro</span> 3</code></pre>
+      <p>Gom lỗi lặp lại từ agent memory, <code>verification.md</code>, lịch sử revision và các commit <code>fix(…)</code>. Lỗi gặp hai lần thành mục checklist cho reviewer; gặp ba lần thành hook hoặc lint rule. Ghi vào <code>docs/retros/&lt;ngày&gt;.md</code>, bạn chọn đề xuất nào được áp dụng.</p>
+    </article>
+
+    <div class="finish">
+      <span class="eyebrow" style="color:var(--ok)">Đích đến</span>
+      <h3>App được coi là hoàn chỉnh khi</h3>
+      <ul>
+        <li>Mọi mục backlog của <code>R001</code> có spec, và mọi spec đều đã merge vào <code>main</code>.</li>
+        <li>Mỗi feature có <code>verification.md</code> ghi <b>READY TO MERGE</b> và <code>tasks.md</code> ở trạng thái <code>Done</code>.</li>
+        <li><code>/sdd-analyze R001</code> kết luận "Consistent": mọi BG/BR được phủ, không spec nào lệch khỏi mục backlog của nó.</li>
+        <li><code>/sdd-status</code> không còn feature dở dang hay tài liệu ⚠ stale.</li>
+        <li><code>ArchitectureTests</code> xanh, và mọi package trong <code>*.csproj</code> và <code>package.json</code> đều có trong bảng "Allowed dependencies".</li>
+        <li>Đã chạy ít nhất một <code>/sdd-retro</code> và áp dụng các cải tiến cho các đợt tiếp theo.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CHANGE ================= -->
+<section class="section" id="change">
+  <div class="stage-intro">
+    <span class="eyebrow">Ngoài lộ trình chính</span>
+    <h2>Khi yêu cầu thay đổi hoặc có bug</h2>
+  </div>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Đổi tài liệu đã duyệt: <code>/sdd-amend</code></h3>
+      <pre class="cmd"><code><span class="p">/sdd-amend</span> spec Đơn quá hạn chuyển lên trưởng phòng thay vì tự từ chối
+<span class="p">/sdd-amend</span> plan Gửi mail qua hàng đợi thay vì gửi đồng bộ
+<span class="p">/sdd-amend</span> tasks Thêm task giới hạn 5 đơn mỗi ngày cho FR-006</code></pre>
+      <ol>
+        <li>Claude phân tích tác động (FR nào đổi, task <code>[x]</code> nào phải làm lại) và <b>hỏi bạn xác nhận</b> trước khi ghi.</li>
+        <li>Tài liệu bị sửa: Revision +1, về Draft, thêm dòng "Revision history".</li>
+        <li>Tài liệu cấp dưới cũng về Draft. Cổng code <b>khoá</b> cho tới khi cả chuỗi được duyệt lại.</li>
+      </ol>
+      <div class="chain">
+        spec  → <b>✔spec</b> → /sdd-plan → <b>✔plan</b> → /sdd-tasks → <b>✔tasks</b> → /sdd-build<br>
+        plan  →            <b>✔plan</b> → /sdd-tasks → <b>✔tasks</b> → /sdd-build<br>
+        tasks →                                <b>✔tasks</b> → /sdd-build
+      </div>
+      <p class="muted">Spec còn Draft (chưa từng duyệt) thì không cần amend, dùng <code>/sdd-clarify</code>.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Đổi yêu cầu nghiệp vụ</h3>
+      <pre class="cmd"><code><span class="p">/sdd-amend</span> requirements Thêm loại nghỉ không lương R001
+<span class="p">/sdd-ba-spec</span> R001 BL-05</code></pre>
+      <ul>
+        <li>Làm trên <code>main</code>. Claude liệt kê các spec bị ảnh hưởng (theo quy tắc chúng phủ) nhưng <b>không tự sửa spec</b>.</li>
+        <li>Duyệt lại <code>/sdd-approve requirements R001</code>: chỉ mục mới (cột Spec là <code>—</code>) được sinh spec.</li>
+        <li>Với mỗi spec bị ảnh hưởng: <code>git switch feat/NNN-…</code>, rồi <code>/sdd-clarify</code> (nếu Draft) hoặc <code>/sdd-amend spec</code> (nếu Approved).</li>
+      </ul>
+    </div>
+
+    <div class="panel">
+      <h3>Bug nhỏ: <code>/sdd-fix</code></h3>
+      <pre class="cmd"><code><span class="p">/sdd-fix</span> Trang danh sách đơn bị crash khi nhân viên chưa có đơn nào. Log: TypeError at LeaveList.tsx:42</code></pre>
+      <p>Chỉ dùng khi hệ thống sai so với hành vi mong đợi, sửa khoảng ≤ 3 file, không thêm thư viện, không đổi data model hay interface công khai. Ngược lại, dùng <code>/sdd-spec</code> hoặc <code>/sdd-amend</code>.</p>
+      <ol>
+        <li>Nhánh <code>fix/NNN-slug</code>, điều tra chỉ-đọc, viết <code>fix.md</code>: triệu chứng, cách tái hiện, hành vi mong đợi (Given/When/Then), nguyên nhân gốc <code>file:line</code>, phạm vi sửa.</li>
+        <li>Bạn đọc rồi <code>/sdd-approve fix</code>.</li>
+        <li><code>/sdd-build</code>: test hồi quy viết trước và phải fail, rồi mới sửa.</li>
+        <li><code>/sdd-verify</code> → <code>/sdd-pr</code> như feature.</li>
+      </ol>
+    </div>
+
+    <div class="panel">
+      <h3>Cần package hoặc quy ước mới: <code>/sdd-architecture</code></h3>
+      <pre class="cmd"><code><span class="p">/sdd-architecture</span> add FluentValidation to Application for command validation</code></pre>
+      <ol>
+        <li>Claude kiểm package bằng lệnh chỉ đọc (có tồn tại không, license, lần phát hành gần nhất, có trùng với thứ đã cho phép không) rồi đề xuất phạm vi hẹp nhất.</li>
+        <li>Đưa bảng tác động và <b>hỏi bạn xác nhận</b>.</li>
+        <li>Thêm dòng vào bảng, tăng <code>Version</code> (thêm package = minor, đổi luật tầng = major), commit <code>docs: architecture v1.1.0 — …</code>.</li>
+        <li>Không cài gì ở bước này. Việc cài nằm trong một task của feature cần nó; plan cũ hơn version mới được liệt kê để cập nhật.</li>
+      </ol>
+    </div>
+
+    <div class="panel wide">
+      <h3>Cần làm ngoài quy trình</h3>
+      <p>Ví dụ một spike thử nghiệm hoặc sửa gấp. Tạo <code>.claude/settings.local.json</code> (không commit):</p>
+      <pre class="cmd"><code>{ "env": { "SDD_GATE": "off" } }</code></pre>
+      <p>Khởi động lại Claude Code. Cổng code tắt; cổng duyệt, cổng kiến trúc và các guard vẫn bật. Nhớ xoá file khi xong. Hai công tắc khác cùng cách dùng, chỉ cho ngoại lệ có chủ đích: <code>"SDD_DEPS": "off"</code> và <code>"SDD_EXTERNAL": "off"</code>.</p>
+      <p class="muted">Hook là lan can chống nhầm, không phải ranh giới bảo mật: code sinh ra bởi lệnh như <code>npm init</code> không đi qua hook. Quy tắc trong <code>CLAUDE.md</code> là lớp bảo vệ thứ hai.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ================= GUARD RAILS ================= -->
+<section class="section" id="guard">
+  <div class="stage-intro">
+    <span class="eyebrow">Hook tự động</span>
+    <h2>Lan can: kiến trúc, dependency và thế giới bên ngoài</h2>
+    <p class="muted">Ba guard mới chạy trên mọi lệnh shell, mọi lần sửa file và mọi tool MCP/Artifact, kể cả khi <code>software-engineer</code> là bên gọi. Nếu một lệnh gộp có nhiều phần, phần nghiêm nhất quyết định (<code>curl … &amp;&amp; git push</code> bị chặn chứ không chỉ hỏi).</p>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>Guard dependency</h3>
+      <p>Đọc bảng "Allowed dependencies" và bảng tầng trong <code>docs/architecture.md</code>.</p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Claude thử</th><th>Kết quả</th></tr></thead>
+        <tbody>
+          <tr><td><code>npm i -D vitest</code></td><td><span class="verdict allow">Cho phép</span> có trong bảng, phạm vi dev</td></tr>
+          <tr><td><code>npm install axios</code></td><td><span class="verdict deny">Chặn</span> không có trong bảng</td></tr>
+          <tr><td><code>npm install vitest</code> (runtime)</td><td><span class="verdict deny">Chặn</span> chỉ được dùng ở dev</td></tr>
+          <tr><td><code>dotnet add …Domain package NSubstitute</code></td><td><span class="verdict deny">Chặn</span> chỉ được dùng ở Tests</td></tr>
+          <tr><td><code>dotnet add …Application reference …Infrastructure</code></td><td><span class="verdict deny">Chặn</span> phá luật tầng</td></tr>
+          <tr><td>Sửa <code>.csproj</code> / <code>package.json</code> thêm package lạ</td><td><span class="verdict deny">Chặn</span> giống như lệnh cài</td></tr>
+          <tr><td><code>npx cowsay</code>, <code>npm -g</code>, <code>pip</code>, <code>winget</code></td><td><span class="verdict deny">Chặn</span></td></tr>
+          <tr><td>Sửa <code>docs/architecture.md</code></td><td><span class="verdict deny">Chặn</span> trừ khi bạn vừa gõ <code>/sdd-scaffold</code> hoặc <code>/sdd-architecture</code></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="panel">
+      <h3>Guard hành động ra bên ngoài</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Loại</th><th>Ví dụ</th></tr></thead>
+        <tbody>
+          <tr><td><span class="verdict deny">Chặn hẳn</span></td><td><code>git push</code>, <code>npm publish</code>, <code>dotnet nuget push</code>, <code>docker push</code>, <code>gh release create</code>, <code>vercel</code>, <code>az … deploy</code>, <code>kubectl apply</code>, <code>terraform apply</code>. Claude đưa lệnh để bạn tự chạy.</td></tr>
+          <tr><td><span class="verdict ask">Hỏi bạn</span></td><td><code>curl</code>/<code>Invoke-WebRequest</code> tới host không phải local, <code>ssh</code>, gửi mail, <code>gh pr create</code>, <code>git remote add</code>, <code>git clone</code>, cloud CLI, <code>node -e</code> gọi URL, tool MCP dạng ghi, publish Artifact</td></tr>
+          <tr><td><span class="verdict allow">Cho phép</span></td><td><code>curl http://localhost:5000/health</code>, <code>gh pr view</code>, <code>gh api</code> GET, <code>dotnet test</code>, tool MCP chỉ đọc (<code>get…</code>, <code>list…</code>, <code>search…</code>), <code>WebFetch</code></td></tr>
+        </tbody>
+      </table></div>
+      <p class="muted">Khi thấy hộp xác nhận <code>[SDD] Action outside the project: …</code>, chỉ bấm cho phép nếu chính bạn đã yêu cầu việc đó.</p>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Toàn bộ hook của kit</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Hook</th><th>Khi nào</th><th>Làm gì</th></tr></thead>
+      <tbody>
+        <tr><td>Trạng thái đầu phiên</td><td>Mở hoặc tiếp tục phiên</td><td>In nhánh, feature, bước tiếp theo, cảnh báo cấu hình (thiếu constitution, thiếu architecture…)</td></tr>
+        <tr><td>Token lệnh</td><td>Bạn gõ <code>/sdd-approve</code>, <code>/sdd-scaffold</code>, <code>/sdd-architecture</code></td><td>Ghi token. Duyệt: 15 phút. Scaffold và architecture: tới prompt kế tiếp của bạn.</td></tr>
+        <tr><td>Cổng duyệt</td><td>Sửa spec/plan/tasks/fix/requirements</td><td>Chặn đổi Status sang Approved nếu không có token duyệt</td></tr>
+        <tr><td>Cổng kiến trúc</td><td>Sửa <code>docs/architecture.md</code></td><td>Chỉ cho phép trong <code>/sdd-scaffold</code> hoặc <code>/sdd-architecture</code></td></tr>
+        <tr><td>Guard dependency</td><td>Sửa manifest, chạy npm/npx/dotnet/…</td><td>Đối chiếu bảng dependency và luật tầng</td></tr>
+        <tr><td>Cổng code</td><td>Sửa file ngoài <code>specs/</code>, <code>docs/</code>, <code>.claude/</code>…</td><td>Chỉ cho phép trên nhánh feature/fix có tài liệu đã duyệt, hoặc trong <code>src/</code> lúc đang scaffold</td></tr>
+        <tr><td>Guard bên ngoài</td><td>Lệnh shell, tool MCP, Artifact, RemoteTrigger</td><td>Chặn hoặc hỏi như bảng trên</td></tr>
+        <tr><td>Đường vòng shell</td><td>Lệnh shell</td><td>Chặn ghi <code>Status: Approved</code> từ shell và động vào <code>.claude/state/</code></td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<!-- ================= REFERENCE ================= -->
+<section class="section" id="ref">
+  <div class="stage-intro">
+    <span class="eyebrow">Tra cứu</span>
+    <h2>Trạng thái, hook và quy ước</h2>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>Trạng thái và chuỗi revision</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Tài liệu</th><th>Status</th><th>Trường revision</th></tr></thead>
+        <tbody>
+          <tr><td><code>requirements.md</code></td><td>Draft → Approved</td><td>Revision</td></tr>
+          <tr><td><code>spec.md</code></td><td>Draft → Approved</td><td>Revision, Source</td></tr>
+          <tr><td><code>plan.md</code></td><td>Draft → Approved</td><td>Revision, Spec revision, Constitution, Architecture</td></tr>
+          <tr><td><code>tasks.md</code></td><td>Draft → Approved → Done</td><td>Revision, Plan revision</td></tr>
+          <tr><td><code>fix.md</code></td><td>Draft → Approved → Done</td><td>—</td></tr>
+          <tr><td><code>architecture.md</code></td><td>Scaffolding → Active</td><td>Version (semver)</td></tr>
+        </tbody>
+      </table></div>
+      <p><b>Stale</b>: <code>Spec revision</code> của plan thấp hơn <code>Revision</code> của spec (tương tự tasks so với plan). <code>/sdd-status</code> hiện ⚠ stale và cổng code chặn cho tới khi cập nhật và duyệt lại. Thứ tự ưu tiên khi mâu thuẫn: constitution &gt; architecture &gt; requirements &gt; spec &gt; plan &gt; tasks &gt; code.</p>
+    </div>
+
+    <div class="panel">
+      <h3>Đọc thông báo chặn của hook</h3>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Thông báo chứa</th><th>Bạn làm</th></tr></thead>
+        <tbody>
+          <tr><td>not a git repository yet</td><td><code>/sdd-init</code></td></tr>
+          <tr><td>current branch "main" is not feat/…</td><td>Bắt đầu bằng <code>/sdd-spec</code> hoặc <code>/sdd-fix</code></td></tr>
+          <tr><td>tasks.md is "Draft"</td><td>Đọc rồi <code>/sdd-approve tasks</code></td></tr>
+          <tr><td>outdated spec revision</td><td><code>/sdd-plan</code> → <code>/sdd-approve plan</code> → …</td></tr>
+          <tr><td>only the user can approve</td><td>Gõ lại <code>/sdd-approve …</code> (token hết hạn sau 15 phút)</td></tr>
+          <tr><td>tests still fail after 3 attempts</td><td>Đọc nguyên nhân; thường plan/contract sai → <code>/sdd-amend plan</code></td></tr>
+          <tr><td>not in the "Allowed dependencies" table</td><td>Cần thật thì <code>/sdd-architecture add &lt;pkg&gt; to &lt;layer&gt; — &lt;lý do&gt;</code></td></tr>
+          <tr><td>Clean Architecture: X must not reference Y</td><td>Thường là code đặt sai tầng; nếu không thì <code>/sdd-architecture</code></td></tr>
+          <tr><td>Blocked: git push… / publish / deploy</td><td>Tự chạy lệnh Claude đưa ra</td></tr>
+          <tr><td>The scaffold is unfinished</td><td>Gõ lại <code>/sdd-scaffold</code> để chạy tiếp</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Bảng lệnh theo thứ tự dùng</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Lệnh</th><th>Khi nào</th><th>Kết quả</th></tr></thead>
+      <tbody>
+        <tr><td><code>/sdd-init</code></td><td>Một lần, chạy lại an toàn</td><td>git, CLAUDE.md, settings.json, .gitignore</td></tr>
+        <tr><td><code>/sdd-constitution</code></td><td>Một lần; cập nhật khi đổi nguyên tắc</td><td>docs/constitution.md</td></tr>
+        <tr><td><code>/sdd-scaffold [tên]</code></td><td>Một lần, sau constitution, trước plan đầu tiên</td><td>src/backend, src/frontend, docs/architecture.md</td></tr>
+        <tr><td><code>/sdd-architecture</code></td><td>Cần package, project hay quy ước mới</td><td>architecture.md, Version tăng</td></tr>
+        <tr><td><code>/sdd-ba</code></td><td>Yêu cầu lớn hoặc thô</td><td>docs/requirements/RNNN-slug/</td></tr>
+        <tr><td><code>/sdd-approve requirements RNNN</code></td><td>Đồng ý với backlog</td><td>Approved + mỗi mục một spec và một nhánh</td></tr>
+        <tr><td><code>/sdd-ba-spec RNNN [BL-XX]</code></td><td>Mục backlog chưa có spec</td><td>feat/NNN-slug, spec.md</td></tr>
+        <tr><td><code>/sdd-spec</code></td><td>Feature mới, nhỏ, rõ ràng</td><td>feat/NNN-slug, spec.md</td></tr>
+        <tr><td><code>/sdd-clarify [RNNN]</code></td><td>Còn điểm mơ hồ</td><td>spec.md / requirements.md cập nhật</td></tr>
+        <tr><td><code>/sdd-approve spec|plan|tasks|fix</code></td><td>Đã đọc và đồng ý</td><td>Status → Approved, commit</td></tr>
+        <tr><td><code>/sdd-plan [công nghệ]</code></td><td>Sau khi duyệt spec</td><td>plan.md (+ research, data-model, contracts)</td></tr>
+        <tr><td><code>/sdd-tasks</code></td><td>Sau khi duyệt plan</td><td>tasks.md</td></tr>
+        <tr><td><code>/sdd-analyze [NNN|RNNN]</code></td><td>Trước khi duyệt tasks, sau amend</td><td>Báo cáo trong chat (chỉ đọc)</td></tr>
+        <tr><td><code>/sdd-build [T005|phase 3|all]</code></td><td>Sau khi duyệt tasks/fix</td><td>Code + test do software-engineer viết, mỗi task một commit</td></tr>
+        <tr><td><code>/sdd-verify</code></td><td>Xong mọi task</td><td>verification.md</td></tr>
+        <tr><td><code>/sdd-pr</code></td><td>Verify đạt</td><td>pr.md + hướng dẫn push</td></tr>
+        <tr><td><code>/sdd-fix</code></td><td>Bug nhỏ</td><td>fix/NNN-slug, fix.md</td></tr>
+        <tr><td><code>/sdd-amend</code></td><td>Đổi tài liệu đã duyệt</td><td>Revision +1, quay về cổng duyệt</td></tr>
+        <tr><td><code>/sdd-status</code></td><td>"Tôi đang ở đâu?"</td><td>Bảng trạng thái</td></tr>
+        <tr><td><code>/sdd-retro [N]</code></td><td>Mỗi 2–3 feature</td><td>docs/retros/&lt;ngày&gt;.md</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+
+  <div class="grid2">
+    <div class="panel">
+      <h3>Quy ước đặt tên</h3>
+      <ul>
+        <li>Thư mục <code>specs/NNN-slug/</code>; feature và fix dùng chung dãy số. Requirements <code>docs/requirements/RNNN-slug/</code>, nằm trên <code>main</code>.</li>
+        <li>Nhánh <code>feat/NNN-slug</code>, <code>fix/NNN-slug</code>; nhánh chính <code>main</code>.</li>
+        <li>ID: <code>FR-001</code>, <code>NFR-001</code>, <code>SC-001</code>, <code>US1</code>, <code>T001</code>; trong requirements: <code>BG-01</code>, <code>BR-001</code>, <code>QE-01</code>, <code>PR-01</code>, <code>BL-01</code>.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Quy ước commit</h3>
+      <div class="table-wrap"><table>
+        <tbody>
+          <tr><td>Tài liệu feature</td><td><code>docs(001): draft spec</code>, <code>docs(001): approve plan</code></td></tr>
+          <tr><td>Requirements</td><td><code>docs(R001): draft requirements</code></td></tr>
+          <tr><td>Code</td><td><code>test(001): T004 …</code>, <code>feat(001): T005 …</code>, <code>fix(002): T002 …</code></td></tr>
+          <tr><td>Sửa sau review</td><td><code>fix(001): review phase 3</code>, <code>fix(001): verify — …</code></td></tr>
+          <tr><td>Dùng chung</td><td><code>docs: retro 2026-11-01</code>, <code>docs: architecture v1.1.0 — …</code>, <code>chore: init SDD kit</code>, <code>chore: scaffold …</code></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Chín thói quen để quy trình trơn tru</h3>
+    <ol class="tips">
+      <li>Giữ spec nhỏ: 1–3 ngày mỗi feature; quá 5 user story thì tách.</li>
+      <li>Đầu tư vào kịch bản chấp nhận: đó là thứ duy nhất được kiểm từ đầu tới cuối.</li>
+      <li>Đọc thật trước khi <code>/sdd-approve</code>. Cổng duyệt chỉ có giá trị bằng việc đọc phía sau nó.</li>
+      <li>Chạy <code>/sdd-analyze</code> trước <code>/sdd-approve tasks</code>.</li>
+      <li>Mỗi lúc chỉ một feature dở dang.</li>
+      <li><code>/clear</code> giữa các phase và giữa các feature; mọi trạng thái nằm trong file.</li>
+      <li>Không bao giờ tự tay sửa tài liệu đã duyệt; dùng <code>/sdd-amend</code>.</li>
+      <li>Giữ danh sách dependency ngắn: mỗi lần <code>/sdd-architecture add</code> là một chi phí lâu dài.</li>
+      <li>Retro đều đặn: lỗi gặp hai lần thành checklist, ba lần thành hook.</li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <span>Tổng hợp từ <code>guideline.md</code>, <code>README-SDD-KIT.md</code>, các skill trong <code>.claude/skills/</code> (kể cả <code>/sdd-scaffold</code>, <code>/sdd-architecture</code>), agent và hook của kit.</span>
+  <button type="button" id="reset">Bỏ đánh dấu tiến độ</button>
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var KEY = 'sdd-roadmap-done';
+  var done = {};
+  try { done = JSON.parse(localStorage.getItem(KEY) || '{}') || {}; } catch (e) { done = {}; }
+  var steps = Array.prototype.slice.call(document.querySelectorAll('.step[data-step]'));
+  var bar = document.getElementById('bar');
+  var count = document.getElementById('count');
+
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(done)); } catch (e) {} }
+  function render() {
+    var n = 0;
+    steps.forEach(function (s) {
+      var on = !!done[s.dataset.step];
+      s.classList.toggle('is-done', on);
+      var cb = s.querySelector('.done-toggle input');
+      if (cb) cb.checked = on;
+      if (on) n++;
+    });
+    count.textContent = n + '/' + steps.length;
+    bar.style.width = (steps.length ? (n / steps.length) * 100 : 0) + '%';
+  }
+
+  steps.forEach(function (s) {
+    var id = s.dataset.step;
+    var label = document.createElement('label');
+    label.className = 'done-toggle';
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.id = 'done-' + id.replace('.', '-');
+    cb.addEventListener('change', function () {
+      if (cb.checked) done[id] = true; else delete done[id];
+      save(); render();
+    });
+    label.appendChild(cb);
+    label.appendChild(document.createTextNode('Đã xong'));
+    s.querySelector('.step-top').appendChild(label);
+  });
+
+  document.getElementById('reset').addEventListener('click', function () { done = {}; save(); render(); });
+
+  document.querySelectorAll('pre.cmd').forEach(function (pre) {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'copy';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', function () {
+      var text = pre.querySelector('code').innerText.replace(/\s+#.*$/gm, '').trim();
+      var ok = function () { btn.textContent = 'Đã copy'; setTimeout(function () { btn.textContent = 'Copy'; }, 1400); };
+      var fallback = function () {
+        var r = document.createRange(); r.selectNodeContents(pre.querySelector('code'));
+        var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(r);
+        btn.textContent = 'Đã chọn, nhấn Ctrl+C';
+      };
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(ok, fallback);
+        else fallback();
+      } catch (e) { fallback(); }
+    });
+    pre.appendChild(btn);
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
