@@ -1,7 +1,8 @@
 # Requirements: Product management
 
 **Requirements:** R001-product-management
-**Status:** Draft
+**Status:** Approved
+**Approved:** 2026-10-16
 **Revision:** 1
 **Created:** 2026-10-16
 **Requested by:** alannguyen2003 (shop Admin / product owner)
