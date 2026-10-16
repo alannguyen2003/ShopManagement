@@ -82,9 +82,10 @@ Periodically: /sdd-retro (every 2–3 features)
 ## Project commands
 
 <!-- Filled in by /sdd-scaffold (or /sdd-init for an existing codebase). Claude uses them to verify its own work. -->
-- Install: `<not yet — filled in by /sdd-scaffold>`
-- Run tests: `<not yet — filled in by /sdd-scaffold>`
-- Run a single test: `<not yet — filled in by /sdd-scaffold>`
-- Lint / typecheck: `<not yet — filled in by /sdd-scaffold>`
-- Run dev: `<not yet — filled in by /sdd-scaffold>`
-- Run e2e: `<not yet — filled in by /sdd-scaffold>` (leave empty if none)
+- Install: `dotnet restore src/backend && npm --prefix src/frontend ci`
+- Run tests: `dotnet test src/backend && npm --prefix src/frontend test`
+- Run a single test: `dotnet test src/backend --filter "FullyQualifiedName~<TestName>"` / `npm --prefix src/frontend test -- <file>`
+- Lint / typecheck: `dotnet build src/backend && npm --prefix src/frontend run lint && npm --prefix src/frontend run typecheck`
+- Run dev: `dotnet run --project src/backend/src/ShopManagement.Api` and `npm --prefix src/frontend run dev`
+- Run e2e: `npm --prefix src/frontend run test:e2e`
+- Add an npm package: run from the folder, `cd src/frontend && npm install <pkg>` (`npm --prefix src/frontend install <pkg>` resolves to the repo root on this machine)

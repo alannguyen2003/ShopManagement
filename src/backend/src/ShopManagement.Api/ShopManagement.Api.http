@@ -1,0 +1,6 @@
+@ShopManagement.Api_HostAddress = http://localhost:5271
+
+GET {{ShopManagement.Api_HostAddress}}/health
+Accept: application/json
+
+###

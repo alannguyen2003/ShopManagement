@@ -1,3 +1,14 @@
 # SDD kit: approval token and personal settings
 .claude/state/
 .claude/settings.local.json
+
+# Build and test output
+bin/
+obj/
+node_modules/
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+*.user

@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ShopManagement.Api/ShopManagement.Api.csproj" />
+    <Project Path="src/ShopManagement.Application/ShopManagement.Application.csproj" />
+    <Project Path="src/ShopManagement.Domain/ShopManagement.Domain.csproj" />
+    <Project Path="src/ShopManagement.Infrastructure/ShopManagement.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ShopManagement.Api.IntegrationTests/ShopManagement.Api.IntegrationTests.csproj" />
+    <Project Path="tests/ShopManagement.Application.Tests/ShopManagement.Application.Tests.csproj" />
+    <Project Path="tests/ShopManagement.ArchitectureTests/ShopManagement.ArchitectureTests.csproj" />
+    <Project Path="tests/ShopManagement.Domain.Tests/ShopManagement.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
