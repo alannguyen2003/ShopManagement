@@ -5,3 +5,10 @@
 - R001 vocabulary: Product, Product information, Stock quantity, Starting stock quantity, Out of stock, Product status, Draft, Product list, Page size, Product details, Product management page.
 - The requester (alannguyen2003) writes short one-paragraph inputs without field lists or lifecycles. Always ask for entity fields, status transitions and delete semantics.
 - The scaffold's `/health` endpoint is `AllowAnonymous`, which is a possible P5 conflict to watch in reviews.
+- R002 (Admin sign-in) vocabulary: Admin account, Sign-in name, Admin account setup, Initial password, Sign-in page, Admin session, Admin activity, Failed sign-in attempt, Lockout, Idle timeout, Maximum session length, Expired session, Ended session, System operator.
+- Every requirements document restarts its BR/BG/QE/BL numbering, so cross-document references must carry the prefix (e.g. "R001 BR-049").
+- R001 BR-049 (form kept in the same tab after an expired session, values stored nowhere else) means signing in again has to happen without leaving the current view.
+- `specs/` on main holds only `.gitkeep`; approved specs live on their feature branches (001-add-product on `feat/001-add-product`).
+- The allowed dependency list has no mail capability, so any email-based feature (password reset, notifications) needs `/sdd-architecture` first.
+- R002 sign-in must be built before R001 BL-01 / spec 001, even though its spec numbers (013+) are higher; the exact R002 items are R002 Open question 13.
+- Besides `/health`, the scaffold maps the OpenAPI document in Development without authentication (Program.cs): also a P5 conflict.
