@@ -34,17 +34,19 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 - Updating product information (name, SKU, price, description).
 - Adjusting a product's stock quantity through a separate stock adjustment (add or remove units).
 - Publishing a product: moving it from Draft to Active through a separate action (the Draft delete condition needs a way out of Draft).
-- Deleting a product that is in Draft status or has a stock quantity of 0.
-- Choosing a different page size for the product list [NEEDS CLARIFICATION: is page size changeable at all?].
+- Deleting a product that is in Draft status or has a stock quantity of 0; a deleted product is hidden but kept.
+- Viewing the deleted products and restoring one.
+- Choosing the page size of the product list: 10, 20, 50 or 100.
+- Searching the product list by name or SKU, filtering it by product status and by stock, and sorting it by column.
 
 ### Out of scope
 
 - Admin sign-in / authentication. The constitution (P5) requires it before any product feature can be used; it is delivered by a separate requirements document, R002 (Admin sign-in), which this backlog depends on.
 - A customer-facing storefront, orders, sales and automatic stock deduction: not requested.
-- Searching, filtering and sorting the product list: not requested (see Open questions; could be added as a P2 item).
 - Product categories and product images: not requested; product information is limited to name, SKU, price and description.
 - Stock movement history, audit trail, low-stock alerts: not requested.
 - Bulk operations, import/export: not requested.
+- Permanently erasing a deleted product: not requested; deleted products are kept.
 - Several user accounts or roles: forbidden by constitution P1.
 
 ## Glossary
@@ -66,9 +68,14 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 | Publish (a product) | Move a product from Draft to Active | activate, release, go live |
 | Product list | The paged list of all products shown on the product management page | catalogue, inventory list, grid |
 | Page size | Number of products shown on one page of the product list; 20 by default | page length, limit |
+| Search text | Text the Admin types to narrow the product list to products whose name or SKU contains it | query, keyword, lookup |
+| Filter | A choice that narrows the product list to products with a given product status or stock (in stock / out of stock) | facet, criteria |
+| Sort order | The column the product list is ordered by, and the direction (ascending or descending) | ordering, ranking |
 | Product details | The view showing all product information, the stock quantity and the product status of one product | product page, product info view |
 | Product management page | The single-page interface where the Admin performs all product operations | dashboard, admin panel, back office |
-| Delete (a product) | Take a product out of the system so it no longer appears in the product list or product details [NEEDS CLARIFICATION: permanent or recoverable] | remove, archive, discard |
+| Delete (a product) | Mark a product as deleted: it no longer appears in the product list or product details, but it is kept and can be restored | remove, archive, discard, erase |
+| Deleted products list | The paged list of deleted products, from which the Admin can restore one | trash, recycle bin, archive |
+| Restore (a product) | Bring a deleted product back, unchanged, into the product list | undelete, recover, reactivate |
 
 ## Business processes
 
@@ -85,24 +92,25 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 - The SKU is already used by another product → the system rejects the save, saves nothing and shows the reason next to the SKU field (BR-030).
 - The Admin cancels → nothing is saved; the system returns to the product management page.
 - The Admin clicks Save twice → at most one product is created (BR-028).
-- The save fails (network error or expired session) → the Admin is told the product was not saved [NEEDS CLARIFICATION: is the entered data kept? see Open question 11].
+- The save fails (network error or expired session) → the Admin is told the product was not saved; the form stays open with the entered values so the Admin can retry (BR-049).
 
 ### PR-02 — View the product list
 
 1. The Admin opens the product management page.
 2. The system shows the first page of the product list, 20 products per page, newest first, with the total number of products and pages.
-3. The Admin moves to another page, or chooses another page size [NEEDS CLARIFICATION].
-4. The system shows the requested page.
+3. The Admin moves to another page, chooses another page size (10, 20, 50 or 100), enters search text, sets filters or changes the sort order.
+4. The system shows the requested page of the matching products; a change of search text, filter or sort order goes back to page 1.
 
 **Exceptions:**
 - No products exist → the system shows an empty-list message and a way to add a product.
+- Products exist but none match the search text and filters → the system shows a "no matching products" message and a way to clear the search text and filters.
 - The requested page is beyond the last page (e.g. after a deletion) → the system shows the last existing page.
 
 ### PR-03 — View product details
 
 1. The Admin selects a product in the product list.
 2. The system shows the product details: all product information, stock quantity and product status.
-3. The Admin returns to the product list at the same page.
+3. The Admin returns to the product list at the same page, with the same search text, filters and sort order.
 
 **Exceptions:**
 - The product no longer exists → the system shows a "product not found" message and a way back to the product list.
@@ -118,7 +126,7 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 - Invalid value (e.g. missing required field, price below 0, SKU already used by another product) → the system rejects the save, keeps the stored product unchanged and shows the reason next to each invalid field.
 - The product was deleted meanwhile → the system shows "product not found"; nothing is saved.
 - The Admin cancels → nothing is saved.
-- The save fails (network error or expired session) → the Admin is told the change was not saved; the stored product is unchanged [NEEDS CLARIFICATION: see Open question 11].
+- The save fails (network error or expired session) → the Admin is told the change was not saved; the stored product is unchanged and the form stays open with the entered values so the Admin can retry (BR-049).
 
 ### PR-05 — Publish a product
 
@@ -141,6 +149,17 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 - Removing the units would bring the stock quantity below 0 → the system refuses, tells the Admin the current stock quantity, and the stock quantity is unchanged.
 - The product no longer exists → "product not found".
 - The Admin cancels → nothing changes.
+
+### PR-08 — Restore a deleted product
+
+1. The Admin opens the deleted products list from the product management page.
+2. The system shows the deleted products, 20 per page, most recently deleted first.
+3. The Admin chooses to restore one.
+4. The system brings the product back with its product information, stock quantity and product status unchanged, and it appears in the product list again.
+
+**Exceptions:**
+- No deleted products exist → the system shows an empty-list message.
+- The product was already restored (e.g. from another tab) → "product not found" in the deleted products list; nothing changes.
 
 ### PR-06 — Delete a product
 
@@ -165,9 +184,9 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 - **BR-004:** A product may be deleted only if its product status is Draft or its stock quantity is 0. *(Source: input)*
 - **BR-005:** When a deletion is refused under BR-004, the system tells the Admin the reason and the product stays unchanged. *(Source: assumption)*
 - **BR-006:** A deletion takes effect only after the Admin explicitly confirms it. *(Source: assumption)*
-- **BR-007:** A deleted product no longer appears in the product list and its product details can no longer be opened. [NEEDS CLARIFICATION: permanent deletion or recoverable?] *(Source: input "delete product"; permanence open)*
+- **BR-007:** A deleted product no longer appears in the product list (including search, filters and totals) and its product details can no longer be opened. *(Source: input "delete product"; clarification 2026-10-16)*
 - **BR-008:** The product list shows 20 products per page by default. *(Source: input)*
-- **BR-009:** The Admin can change the page size to [NEEDS CLARIFICATION: is page size changeable, and to which values, e.g. 10/20/50/100?]. *(Source: interpretation of input "default is 20")*
+- **BR-009:** The Admin can change the page size of the product list to 10, 20, 50 or 100; any other requested value falls back to 20. *(Source: input "default is 20"; clarification 2026-10-16)*
 - **BR-010:** The product list is ordered by date added, newest first. *(Source: assumption)*
 - **BR-011:** Every product has exactly one product status, Draft or Active. *(Source: clarification 2026-10-16)*
 - **BR-012:** The only allowed status change is Draft → Active (publish); an Active product never returns to Draft. *(Source: clarification 2026-10-16)*
@@ -182,13 +201,27 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 - **BR-033:** A stock adjustment adds or removes a whole number of units of 1 or more. *(Source: clarification 2026-10-16)*
 - **BR-034:** A stock adjustment that would bring the stock quantity below 0 is refused and the stock quantity is unchanged. *(Source: clarification 2026-10-16, follows from BR-003)*
 - **BR-035:** A stock adjustment is applied to the stored stock quantity at the moment it is saved, so two adjustments made close together both count. *(Source: assumption)*
+- **BR-036:** A product matches the search text when its name or SKU contains that text, ignoring letter case and leading/trailing spaces. *(Source: clarification 2026-10-16; matching rule is an assumption)*
+- **BR-037:** Search text is at most 100 characters; empty search text matches every product. *(Source: assumption)*
+- **BR-038:** The Admin can filter the product list by product status: all, Draft or Active. *(Source: clarification 2026-10-16)*
+- **BR-039:** The Admin can filter the product list by stock: all, in stock (stock quantity 1 or more) or out of stock (stock quantity 0). *(Source: clarification 2026-10-16; the two stock values are an assumption)*
+- **BR-040:** The Admin can sort the product list by name, SKU, price, stock quantity or date added, ascending or descending; products with equal values are ordered by date added, newest first. Without a chosen sort order, BR-010 applies. *(Source: clarification 2026-10-16; columns and tie rule are assumptions)*
+- **BR-041:** Search text, filters and sort order can be used together; paging and the totals of BR-021 apply to the matching products only. *(Source: assumption)*
+- **BR-042:** Changing the search text, a filter or the sort order returns the product list to page 1. *(Source: assumption)*
+- **BR-044:** A deleted product is kept with its product information, stock quantity and product status, and can be restored. *(Source: clarification 2026-10-16)*
+- **BR-045:** A deleted product's SKU stays reserved: no other product can be added or updated with that SKU while the deleted product is kept. *(Source: assumption, so that a restore never conflicts)*
+- **BR-046:** The deleted products list shows each deleted product's name, SKU and deletion date, 20 per page, most recently deleted first. *(Source: assumption)*
+- **BR-047:** Restoring a deleted product brings it back unchanged (product information, stock quantity, product status) and needs no confirmation. *(Source: clarification 2026-10-16; no confirmation is an assumption)*
+- **BR-048:** A deleted product cannot be edited, adjusted, published or deleted again; such requests report "product not found". *(Source: assumption)*
+- **BR-049:** When saving the add form, the edit form or a stock adjustment fails (network error or expired session), the form stays open in the same tab with the entered values and an error message, so the Admin can retry, after signing in again if needed; the values are not stored anywhere else in the browser. *(Source: clarification 2026-10-16)*
+- **BR-043:** When products exist but none match the search text and filters, the product list shows a "no matching products" message and a way to clear the search text and filters. *(Source: assumption)*
 - **BR-017:** When an add or update is rejected, nothing is saved and the Admin sees which field is invalid and why. *(Source: assumption; constitution P6)*
 - **BR-018:** Product details show all product information, the stock quantity and the product status. *(Source: input "viewing product information")*
 - **BR-019:** Each row of the product list shows the product's name, SKU, price, stock quantity and product status; the description appears only in the product details. *(Source: assumption, based on the fields fixed by clarification 2026-10-16)*
 - **BR-020:** When the requested page is beyond the last page, the product list shows the last existing page. *(Source: assumption)*
 - **BR-021:** The product list shows the total number of products and of pages. *(Source: assumption)*
 - **BR-022:** When no products exist, the product list shows an empty-list message and a way to add a product. *(Source: assumption)*
-- **BR-023:** Returning from product details shows the product list at the page the Admin came from. *(Source: assumption)*
+- **BR-023:** Returning from product details shows the product list at the page, search text, filters and sort order the Admin came from. *(Source: assumption)*
 - **BR-024:** Delete is offered from both the product list and the product details. *(Source: assumption)*
 - **BR-025:** The delete condition of BR-004 is checked against the stored product at the moment of deletion, not against what the screen showed. *(Source: assumption)*
 - **BR-026:** When the same product is saved from two places, the last save wins. *(Source: assumption)*
@@ -197,10 +230,10 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 ## Quality expectations
 
-- **QE-01:** 95% of product list pages (20 products, 10,000 stored) are shown within 2 seconds of the Admin's action, measured in the browser. *(Volume and time are assumptions.)*
-- **QE-02:** 95% of adds, updates, stock adjustments, publishes and deletions (10,000 products stored) are confirmed to the Admin within 1 second of the action, measured in the browser. *(Assumption.)*
+- **QE-01:** 95% of product list pages (20 products, 10,000 stored, with or without search text, filters and sort order) are shown within 2 seconds of the Admin's action, measured in the browser. *(Volume and time are assumptions.)*
+- **QE-02:** 95% of adds, updates, stock adjustments, publishes, deletions and restores (10,000 products stored) are confirmed to the Admin within 1 second of the action, measured in the browser. *(Assumption.)*
 - **QE-03:** 100% of product operations and product views are refused without a signed-in Admin session. *(Constitution P5.)*
-- **QE-04:** Moving between the product list, product details, the add form and the edit form causes 0 full page reloads, and the browser Back button returns to the previous view, including the product list page number. *(Input "SPA"; Back-button behavior is an assumption.)*
+- **QE-04:** Moving between the product list, product details, the add form and the edit form causes 0 full page reloads, and the browser Back button returns to the previous view, including the product list page number, search text, filters and sort order. *(Input "SPA"; Back-button behavior is an assumption.)*
 - **QE-05:** 100% of invalid inputs are rejected at the boundary with a field-level message, and 0 invalid values are stored. *(Constitution P6.)*
 
 ## Constraints
@@ -225,8 +258,7 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 ## Risks and dependencies
 
 - **Admin sign-in does not exist yet.** Constitution P5 requires a signed-in Admin for every product page and operation, so no backlog item here can be shipped until sign-in exists. → Delivered by R002 (Admin sign-in), analysed with `/sdd-ba` and built before BL-01.
-- **Permanent deletion loses data for good**, and later features (orders, sales) may need deleted products. → Confirmation step (BR-006); Open question 6.
-- **Paging without search** may make products hard to find once there are many. → Open question 7.
+- **Deleted products accumulate** and keep their SKUs reserved (BR-045), so a SKU cannot be reused without first restoring and changing the old product. → Acceptable at the expected volume; permanent erasing can be added later through `/sdd-amend requirements`.
 
 ## Backlog
 
@@ -234,18 +266,22 @@ The shop Admin needs one place to keep the shop's products and how many of each 
 
 | ID | Feature | Priority | Size | Depends on | Covers | Spec |
 |----|---------|----------|------|------------|--------|------|
-| BL-01 | Add a product | P1 | M | R002 (Admin sign-in) | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-015, BR-017, BR-028, QE-02, QE-03, QE-04, QE-05 | — |
+| BL-01 | Add a product | P1 | M | R002 (Admin sign-in) | BG-01, BG-02, BR-001, BR-002, BR-003, BR-011, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-045, BR-015, BR-017, BR-028, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
 | BL-02 | Paged product list | P1 | M | BL-01 | BG-01, BR-008, BR-010, BR-015, BR-019, BR-020, BR-021, BR-022, QE-01, QE-03, QE-04 | — |
 | BL-03 | View product details | P1 | S | BL-02 | BG-01, BR-014, BR-015, BR-018, BR-023, QE-03, QE-04 | — |
-| BL-04 | Update product information | P1 | M | BL-03 | BG-01, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-015, BR-016, BR-017, BR-026, QE-02, QE-03, QE-04, QE-05 | — |
+| BL-04 | Update product information | P1 | M | BL-03 | BG-01, BR-029, BR-013, BR-014, BR-030, BR-031, BR-032, BR-015, BR-016, BR-017, BR-026, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
 | BL-05 | Publish a product | P1 | S | BL-03 | BG-03, BR-011, BR-012, BR-015, QE-02, QE-03 | — |
-| BL-08 | Adjust stock | P1 | S | BL-03 | BG-01, BG-02, BR-003, BR-015, BR-016, BR-033, BR-034, BR-035, QE-02, QE-03, QE-04, QE-05 | — |
-| BL-06 | Delete a product | P1 | M | BL-03, BL-05, BL-08 | BG-01, BG-03, BR-004, BR-005, BR-006, BR-007, BR-015, BR-024, BR-025, QE-02, QE-03, QE-04 | — |
+| BL-08 | Adjust stock | P1 | S | BL-03 | BG-01, BG-02, BR-003, BR-015, BR-016, BR-033, BR-034, BR-035, BR-049, QE-02, QE-03, QE-04, QE-05 | — |
+| BL-06 | Delete a product | P1 | M | BL-03, BL-05, BL-08 | BG-01, BG-03, BR-004, BR-005, BR-006, BR-007, BR-044, BR-048, BR-015, BR-024, BR-025, QE-02, QE-03, QE-04 | — |
 | BL-07 | Choose product list page size | P2 | S | BL-02 | BR-009, BR-015, BR-027, QE-03, QE-04 | — |
+| BL-09 | Search products by name or SKU | P2 | S | BL-02 | BG-01, BR-015, BR-036, BR-037, BR-041, BR-042, BR-043, QE-01, QE-03, QE-04, QE-05 | — |
+| BL-10 | Filter products by status and stock | P2 | S | BL-02, BL-05, BL-08 | BR-015, BR-038, BR-039, BR-041, BR-042, BR-043, QE-01, QE-03, QE-04, QE-05 | — |
+| BL-11 | Sort the product list | P3 | S | BL-02 | BR-010, BR-015, BR-040, BR-041, BR-042, QE-01, QE-03, QE-04, QE-05 | — |
+| BL-12 | View and restore deleted products | P2 | M | BL-06 | BR-015, BR-044, BR-045, BR-046, BR-047, QE-02, QE-03, QE-04 | — |
 
 Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-slug` once `/sdd-ba-spec` creates the spec; `—` until then.
 
-**Every item depends on Admin sign-in** (constitution P5), delivered by the separate requirements document R002; BL-01 lists it explicitly and the others inherit it through BL-01. P1 items BL-01 to BL-06 and BL-08 form the MVP (BL-08 was added during clarification and is listed before BL-06, which depends on it). BL-07 exists only if Open question 8 makes page size changeable.
+**Every item depends on Admin sign-in** (constitution P5), delivered by the separate requirements document R002; BL-01 lists it explicitly and the others inherit it through BL-01. P1 items BL-01 to BL-06 and BL-08 form the MVP (BL-08 was added during clarification and is listed before BL-06, which depends on it). BL-09 to BL-12 were added during clarification; their priorities (search, filter and restore P2, sort P3) are an assumption. Each one alone works with the others not yet built; once several exist they combine (BR-041).
 
 ### BL-01 — Add a product
 
@@ -280,7 +316,7 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 - Admin requests page 10 when only 3 pages exist → page 3 shown.
 - Request without a signed-in Admin session → refused.
 
-**Not included:** Changing the page size (BL-07); search, filter and sort (out of scope, pending Open question 7).
+**Not included:** Changing the page size (BL-07); search (BL-09), filters (BL-10) and choosing a sort order (BL-11).
 
 ### BL-03 — View product details
 
@@ -354,16 +390,17 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 
 **Actors:** Admin
 
-**Spec brief:** From the product details or the product list, the signed-in Admin chooses to delete a product. The system allows it only if the product status is Draft or the stock quantity is 0, checked against stored data at the moment of deletion; otherwise it refuses and explains why. An allowed deletion requires explicit confirmation; afterwards the product no longer appears in the product list or details. Permanent versus recoverable deletion is pending clarification (BR-007).
+**Spec brief:** From the product details or the product list, the signed-in Admin chooses to delete a product. The system allows it only if the product status is Draft or the stock quantity is 0, checked against stored data at the moment of deletion; otherwise it refuses and explains why. An allowed deletion requires explicit confirmation; afterwards the product no longer appears in the product list or details, but it is kept with all its data and its SKU stays reserved (BR-044, BR-045). Any later edit, stock adjustment, publish or delete of it reports "product not found" (BR-048).
 
 **Key scenarios:**
 - Draft product with quantity 12 → confirmation → deleted; no longer in the list.
 - Active product with quantity 0 → confirmation → deleted.
 - Active product with quantity 3 → refused with the reason; product unchanged.
 - Admin cancels the confirmation → nothing deleted.
+- After deleting product SKU "MUG-01", adding a new product with SKU "MUG-01" → rejected on the SKU field.
 - Request without a signed-in Admin session → refused.
 
-**Not included:** Restoring deleted products (pending Open question 6); bulk deletion (out of scope).
+**Not included:** Viewing and restoring deleted products (BL-12); permanent erasing and bulk deletion (out of scope).
 
 ### BL-07 — Choose product list page size
 
@@ -371,19 +408,88 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 
 **Actors:** Admin
 
-**Spec brief:** Created only if Open question 8 makes page size changeable. On the product list, the signed-in Admin picks a page size from a fixed set of values (pending clarification, BR-009); the list returns to page 1 with the new size (BR-027). The default stays 20. A page size outside the allowed set → the list uses 20 (no error).
+**Spec brief:** On the product list, the signed-in Admin picks a page size of 10, 20, 50 or 100 (BR-009); the list returns to page 1 with the new size (BR-027) and the totals update. The default stays 20. A page size outside the allowed set → the list uses 20 (no error). The page size survives going to product details and back, and the Back button.
 
 **Key scenarios:**
-- Admin chooses [an allowed value] → page 1 shows up to that many products.
-- A page size outside the allowed set is requested → the list uses 20.
+- 120 products, Admin chooses 50 → page 1 shows 50 products; totals show 3 pages.
+- A page size outside the allowed set (e.g. 7 or 1000) is requested → the list uses 20.
+- Request without a signed-in Admin session → refused.
 
 **Not included:** Remembering the choice between sessions (assumption: not remembered).
+
+### BL-09 — Search products by name or SKU
+
+**Value:** The Admin finds a product quickly without paging through the whole list.
+
+**Actors:** Admin
+
+**Spec brief:** On the product list, the signed-in Admin types search text (up to 100 characters). The list shows only products whose name or SKU contains the text, ignoring letter case and leading/trailing spaces, still paged, with totals for the matching products, starting at page 1. Clearing the text shows all products again. When nothing matches, a "no matching products" message offers a way to clear the search. The search text survives going to product details and back, and the Back button.
+
+**Key scenarios:**
+- Products "Blue Mug" (SKU MUG-01) and "Red Plate" (SKU PL-02) → search "mug" shows only Blue Mug; search "pl-0" shows only Red Plate.
+- 30 products contain "tea" → page 1 shows 20, totals show 30 and 2 pages.
+- Search "zzz" → "no matching products" with a way to clear the search.
+- Search text of 101 characters → rejected at the boundary; the list is unchanged.
+- Request without a signed-in Admin session → refused.
+
+**Not included:** Searching the description; filters (BL-10); choosing a sort order (BL-11).
+
+### BL-10 — Filter products by status and stock
+
+**Value:** The Admin sees at a glance which products are still Draft, or which are out of stock and may need restocking or deleting.
+
+**Actors:** Admin
+
+**Spec brief:** On the product list, the signed-in Admin picks a status filter (all, Draft, Active) and a stock filter (all, in stock, out of stock). The list shows only matching products, paged, with totals for the matching products, starting at page 1. Filters combine with each other and with search text and sort order when those exist. Values outside the allowed set are rejected at the boundary. When nothing matches, a "no matching products" message offers a way to clear the filters. The filters survive going to product details and back, and the Back button.
+
+**Key scenarios:**
+- 5 Draft and 8 Active products → status filter Draft shows the 5 Draft products.
+- Stock filter out of stock → only products with stock quantity 0.
+- Status Active + out of stock → only Active products with stock quantity 0.
+- An unknown filter value is requested → rejected at the boundary.
+- Request without a signed-in Admin session → refused.
+
+**Not included:** Filtering by price range or date; search (BL-09); choosing a sort order (BL-11).
+
+### BL-11 — Sort the product list
+
+**Value:** The Admin orders the list the way that suits the task, e.g. lowest stock first or by name.
+
+**Actors:** Admin
+
+**Spec brief:** On the product list, the signed-in Admin sorts by name, SKU, price, stock quantity or date added, ascending or descending. Equal values are ordered by date added, newest first. Without a chosen sort order the list is newest first (BR-010). Changing the sort order returns to page 1; it combines with search text and filters when those exist, and survives going to product details and back. Unknown sort columns or directions are rejected at the boundary.
+
+**Key scenarios:**
+- Sort by stock quantity ascending → products with stock 0 first.
+- Sort by name descending → Z to A; two products with the same name → newer first.
+- Sort by price on page 3, then change to sort by name → page 1 shown.
+- An unknown sort column is requested → rejected at the boundary.
+- Request without a signed-in Admin session → refused.
+
+**Not included:** Sorting by more than one chosen column; remembering the sort order between sessions.
+
+### BL-12 — View and restore deleted products
+
+**Value:** A product deleted by mistake can be brought back with all its data.
+
+**Actors:** Admin
+
+**Spec brief:** From the product management page, the signed-in Admin opens the deleted products list: name, SKU and deletion date, 20 per page, most recently deleted first. Choosing restore brings the product back unchanged (product information, stock quantity, product status) without a confirmation step; it reappears in the product list and leaves the deleted products list. Navigation stays within the single-page application.
+
+**Key scenarios:**
+- Admin deletes Draft product "Blue Mug" and restores it → it is back in the product list as Draft with the same stock quantity.
+- Restored Active product with stock 0 → back in the product list as Active with stock 0.
+- No deleted products → empty-list message.
+- Restore requested for a product already restored → "product not found"; nothing changes.
+- Request without a signed-in Admin session → refused.
+
+**Not included:** Searching or filtering the deleted products list; permanently erasing a deleted product (out of scope).
 
 ## Traceability
 
 | Goal / rule / quality | Backlog items |
 |-----------------------|---------------|
-| BG-01 | BL-01, BL-02, BL-03, BL-04, BL-06, BL-08 |
+| BG-01 | BL-01, BL-02, BL-03, BL-04, BL-06, BL-08, BL-09 |
 | BG-02 | BL-01, BL-08 |
 | BG-03 | BL-05, BL-06 |
 | BR-001 | BL-01 |
@@ -395,12 +501,12 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 | BR-007 | BL-06 |
 | BR-008 | BL-02 |
 | BR-009 | BL-07 |
-| BR-010 | BL-02 |
+| BR-010 | BL-02, BL-11 |
 | BR-011 | BL-01, BL-05 |
 | BR-012 | BL-05 |
 | BR-013 | BL-01, BL-04 |
 | BR-014 | BL-01, BL-03, BL-04 |
-| BR-015 | BL-01, BL-02, BL-03, BL-04, BL-05, BL-06, BL-07, BL-08 |
+| BR-015 | BL-01, BL-02, BL-03, BL-04, BL-05, BL-06, BL-07, BL-08, BL-09, BL-10, BL-11, BL-12 |
 | BR-016 | BL-04, BL-08 |
 | BR-017 | BL-01, BL-04 |
 | BR-018 | BL-03 |
@@ -421,11 +527,25 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 | BR-033 | BL-08 |
 | BR-034 | BL-08 |
 | BR-035 | BL-08 |
-| QE-01 | BL-02 |
-| QE-02 | BL-01, BL-04, BL-05, BL-06, BL-08 |
-| QE-03 | BL-01, BL-02, BL-03, BL-04, BL-05, BL-06, BL-07, BL-08 |
-| QE-04 | BL-01, BL-02, BL-03, BL-04, BL-06, BL-07, BL-08 |
-| QE-05 | BL-01, BL-04, BL-08 |
+| BR-036 | BL-09 |
+| BR-037 | BL-09 |
+| BR-038 | BL-10 |
+| BR-039 | BL-10 |
+| BR-040 | BL-11 |
+| BR-041 | BL-09, BL-10, BL-11 |
+| BR-042 | BL-09, BL-10, BL-11 |
+| BR-043 | BL-09, BL-10 |
+| BR-044 | BL-06, BL-12 |
+| BR-045 | BL-01, BL-12 |
+| BR-046 | BL-12 |
+| BR-047 | BL-12 |
+| BR-048 | BL-06 |
+| BR-049 | BL-01, BL-04, BL-08 |
+| QE-01 | BL-02, BL-09, BL-10, BL-11 |
+| QE-02 | BL-01, BL-04, BL-05, BL-06, BL-08, BL-12 |
+| QE-03 | BL-01, BL-02, BL-03, BL-04, BL-05, BL-06, BL-07, BL-08, BL-09, BL-10, BL-11, BL-12 |
+| QE-04 | BL-01, BL-02, BL-03, BL-04, BL-06, BL-07, BL-08, BL-09, BL-10, BL-11, BL-12 |
+| QE-05 | BL-01, BL-04, BL-08, BL-09, BL-10, BL-11 |
 
 ## Open questions
 
@@ -434,12 +554,12 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 - [x] 3. How does the stock quantity change after a product is added: in the update form, or through a separate stock adjustment action (add/remove units)? (affects: BR-016, BL-04)
 - [x] 4. Which fields make up product information? Which are required, which must be unique (e.g. SKU), and what are the price rules? Are categories or images wanted? (affects: BR-013, BR-014, BR-019, BL-01, BL-02, BL-03, BL-04)
 - [x] 5. Does "at least 1" apply only when a product is added (it can later drop to 0), or at all times? (affects: BR-001, BR-003, BR-004, BR-016)
-- [ ] 6. Should deletion be permanent, or should a deleted product be hidden but recoverable? (affects: BR-007, BL-06)
-- [ ] 7. Do you want search, filtering or sorting on the product list? (affects: BL-02, scope)
-- [ ] 8. Can the Admin change the page size, and to which values? (affects: BR-009, BL-07)
+- [x] 6. Should deletion be permanent, or should a deleted product be hidden but recoverable? (affects: BR-007, BL-06)
+- [x] 7. Do you want search, filtering or sorting on the product list? (affects: BL-02, scope)
+- [x] 8. Can the Admin change the page size, and to which values? (affects: BR-009, BL-07)
 - [x] 9. Does "stocks default" mean the add form pre-fills the quantity with 1 but lets you change it (at least 1)? Or is it always exactly 1 when a product is added? (affects: BR-002, BL-01)
 - [ ] 10. Please confirm the targets and defaults: under 1 minute per operation, up to 10,000 products, list shown within 2 seconds, operations confirmed within 1 second; the list ordered newest first; a page beyond the last showing the last page. (affects: BG-01, QE-01, QE-02, BR-010, BR-020)
-- [ ] 11. If a save fails (network error, or the session expired mid-edit), should the form keep what the Admin entered so they can retry after signing in again? (affects: PR-01, PR-04, BL-01, BL-04)
+- [x] 11. If a save fails (network error, or the session expired mid-edit), should the form keep what the Admin entered so they can retry after signing in again? (affects: PR-01, PR-04, BL-01, BL-04)
 
 ## Clarification log
 
@@ -450,6 +570,10 @@ Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-s
 | 2026-10-16 | Which fields make up product information? | Name (required, 1–200), SKU (required, unique, up to 50), price (required, ≥ 0, 2 decimals), description (optional, up to 2,000). No categories or images. |
 | 2026-10-16 | How do "at least 1" and "down to 0" fit together, and what does "stocks default" mean? | A new product always starts with stock quantity exactly 1 (the add form has no quantity field); afterwards stock can be any whole number ≥ 0. Also answers question 9. |
 | 2026-10-16 | How does the stock quantity change after a product is added? | Only through a separate stock adjustment (add or remove N ≥ 1 units, never below 0); the edit form does not touch stock. New backlog item BL-08 (P1, S); BL-04 narrowed to product information. |
+| 2026-10-16 | Do you want search, filtering or sorting on the product list? | All three: search by name or SKU (BL-09), filter by status and stock (BL-10), sort by column (BL-11). |
+| 2026-10-16 | Should deletion be permanent or recoverable? | Recoverable: a deleted product is hidden but kept, and can be restored from a deleted products list (new item BL-12). Its SKU stays reserved (assumption). |
+| 2026-10-16 | Can the Admin change the page size? | Yes: 10, 20, 50 or 100, default 20; any other value falls back to 20 (BL-07 kept). |
+| 2026-10-16 | What happens to entered values when a save fails? | The form stays open in the same tab with the values and an error, so the Admin can retry; nothing is stored elsewhere in the browser. |
 
 ## Revision history
 
