@@ -6,3 +6,4 @@
 - A Bash heredoc containing escaped quotes (`\"`) can fail with "unexpected EOF". Create such C# files with the Write tool instead.
 - EF Core `IsRequired()` makes the generated reader throw `InvalidOperationException` ("The data is NULL at ordinal N") on a NULL value even when the record property is nullable; casting to a nullable type in `Select` or using `EF.Property<T?>` does not change that.
 - To read damaged rows (NULL in `IsRequired()` columns) through EF Core, use a separate keyless type with nullable, non-required properties, mapped with `HasNoKey()` and `ToView("<table>")`. It stays out of migrations, and a pending-model-changes check stays clean.
+- EF Core 10 SQLite `MigrateAsync` honors the cancellation token while it waits for `__EFMigrationsLock`, so a timeout-linked `CancellationTokenSource` bounds the wait.

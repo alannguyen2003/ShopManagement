@@ -86,7 +86,7 @@ Infrastructure (tested from IntegrationTests, as there is no Infrastructure test
   - An existing empty file → migrated, the table exists (FR-016).
   - A row inserted first into `__EFMigrationsLock`, lock timeout 2 s → failure `StoredDataLocked`, code `StoredData.Locked`, within the timeout (FR-017).
   - ⚠ High risk (plan "Risks"): if EF Core 10.0.13's lock wait ignores the cancellation token, stop and report; the plan must be revised.
-- [ ] T023 Add `ConnectionStringMissing` and `StoredDataLocked` to `StoredDataErrors` and implement `DatabaseMigrator(IConfiguration, AppDbContext, TimeSpan lockTimeout)` (reads `ConnectionStrings:Default` from the configuration and checks it before touching the context; `Database.MigrateAsync` with a token that cancels after the lock timeout, default `DefaultLockTimeout` = 60 s, settable through the constructor; catches only the `OperationCanceledException` of its own timeout) so T022 passes — Infrastructure/Persistence/DatabaseMigrator.cs, Application/Common/StoredDataErrors.cs
+- [x] T023 Add `ConnectionStringMissing` and `StoredDataLocked` to `StoredDataErrors` and implement `DatabaseMigrator(IConfiguration, AppDbContext, TimeSpan lockTimeout)` (reads `ConnectionStrings:Default` from the configuration and checks it before touching the context; `Database.MigrateAsync` with a token that cancels after the lock timeout, default `DefaultLockTimeout` = 60 s, settable through the constructor; catches only the `OperationCanceledException` of its own timeout) so T022 passes — Infrastructure/Persistence/DatabaseMigrator.cs, Application/Common/StoredDataErrors.cs
 
 Integration test support
 
