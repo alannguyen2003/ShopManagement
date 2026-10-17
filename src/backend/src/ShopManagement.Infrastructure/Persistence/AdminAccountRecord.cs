@@ -1,17 +1,17 @@
 namespace ShopManagement.Infrastructure.Persistence;
 
-// EF Core entity for the AdminAccounts table. Nullable properties keep damaged stored data readable (research R3).
+// EF Core write model for the AdminAccounts table; its types match the IsRequired() columns.
 public sealed class AdminAccountRecord
 {
-    public int Id { get; set; }
+    public required int Id { get; set; }
 
-    public string? SignInName { get; set; }
+    public required string SignInName { get; set; }
 
-    public string? PasswordAlgorithm { get; set; }
+    public required string PasswordAlgorithm { get; set; }
 
-    public byte[]? PasswordSalt { get; set; }
+    public required byte[] PasswordSalt { get; set; }
 
-    public int? PasswordIterations { get; set; }
+    public required int PasswordIterations { get; set; }
 
-    public byte[]? PasswordHash { get; set; }
+    public required byte[] PasswordHash { get; set; }
 }

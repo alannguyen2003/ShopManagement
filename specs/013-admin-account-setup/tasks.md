@@ -57,7 +57,7 @@ Infrastructure (tested from IntegrationTests, as there is no Infrastructure test
   - The hash of "  my shop pass  " is not reproduced by recomputing "my shop pass" with the same salt (US1 #8).
 - [x] T016 Implement `Pbkdf2PasswordHasher` (static `Rfc2898DeriveBytes.Pbkdf2`, salt from `RandomNumberGenerator`, password bytes cleared with `CryptographicOperations.ZeroMemory`) so T015 passes — Infrastructure/Security/Pbkdf2PasswordHasher.cs
 - [x] T017 Write schema tests against a migrated in-memory SQLite database: inserting `Id = 2` fails on `CK_AdminAccounts_SingleRow`; a second row with `Id = 1` fails with extended code 1555; inserting NULL into each of the five non-key columns fails (`Id` is the rowid, so SQLite replaces a NULL there) (FR-001) — IntegrationTests/AdminAccounts/AdminAccountSchemaTests.cs
-- [ ] T018 (redo — plan rev 2) Implement per data-model.md — Infrastructure/Persistence/AdminAccountRecord.cs, AppDbContext.cs, DesignTimeDbContextFactory.cs, Configurations/AdminAccountRecordConfiguration.cs:
+- [x] T018 (redo — plan rev 2) Implement per data-model.md — Infrastructure/Persistence/AdminAccountRecord.cs, AppDbContext.cs, DesignTimeDbContextFactory.cs, Configurations/AdminAccountRecordConfiguration.cs:
   - `AdminAccountRecord` is the write model. Its properties are non-nullable `string`, `byte[]` and `int`, matching the `IsRequired()` columns. They are declared `required`, so CS8618 is satisfied without `null!`.
   - `AppDbContext` has `DbSet<AdminAccountRecord> AdminAccounts`.
   - `AdminAccountRecordConfiguration`: table `AdminAccounts`, `ValueGeneratedNever`, `IsRequired()` on every column, `HasCheckConstraint("CK_AdminAccounts_SingleRow", "\"Id\" = 1")`.
