@@ -3,7 +3,8 @@
 **Feature:** 019-password-recovery
 **Branch:** feat/019-password-recovery
 **Source:** R002/BL-07
-**Status:** Draft
+**Status:** Approved
+**Approved:** 2026-10-17
 **Revision:** 1
 **Created:** 2026-10-17
 
