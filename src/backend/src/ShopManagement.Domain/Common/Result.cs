@@ -1,6 +1,9 @@
 namespace ShopManagement.Domain.Common;
 
-public sealed record Error(string Code, string Message)
+public sealed record Error(
+    string Code,
+    string Message,
+    IReadOnlyDictionary<string, IReadOnlyList<string>>? FieldErrors = null)
 {
     public static readonly Error None = new(string.Empty, string.Empty);
 }
