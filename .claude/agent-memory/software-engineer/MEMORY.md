@@ -16,3 +16,4 @@
 - Process tests run the built Api dll from `bin/<Configuration>/net10.0`: build the solution first; `--no-build` for quick reruns.
 - In process tests, assert the behavior (log line, file exists) before reading the database, so a missing table does not mask the real reason with a `SqliteException`.
 - In `AddInfrastructure`, read `ConnectionStrings:Default` through `sp.GetRequiredService<IConfiguration>()` inside the `AddDbContext((sp, options) => ...)` callback so test-factory overrides are seen; `DatabaseMigrator` (ctor takes a `TimeSpan`) is registered with a factory lambda.
+- Top-level `Program.cs` can `return 0/1` and use static local functions before `public partial class Program;` while `WebApplicationFactory<Program>` keeps working; `AddUserSecrets<Program>(optional: true)` needs no extra package (shared framework).
