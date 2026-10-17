@@ -218,7 +218,7 @@
 - **QE-03:** 0 occurrences of a password, a password hash or a session secret in logs, error responses or committed configuration, and 0 occurrences of an entered sign-in name in logs. *(Constitution P4, P7.)*
 - **QE-04:** A sign-in with an unknown sign-in name and a sign-in with a wrong password give the same message and outcome. Over 100 attempts of each, their average response times differ by less than 100 ms. *(Security; clarification 2026-10-17.)*
 - **QE-05:** 100% of requests made with an ended session are refused: after sign-out, after expiry, after a password change and after recovery. *(Constitution P5.)*
-- **QE-06:** On the sign-in page and the change password form, every field and button can be reached and used with the keyboard alone and has a visible label. Error messages are shown next to the form. *(Assumption.)*
+- **QE-06:** 100% of fields and buttons on the sign-in page, the sign-in prompt and the change password form can be reached and used with the keyboard alone and have a visible label, and 100% of error messages are shown next to the field or form they refer to. *(Assumption; clarification 2026-10-17.)*
 - **QE-07:** 100% of invalid sign-in and password change inputs (empty, too long) are rejected at the boundary with a message, before the sign-in name and password are checked. *(Constitution P6.)*
 - **QE-08:** 100% of operations over an unencrypted connection are refused and 100% of pages opened that way are sent to the encrypted address without data, checked automatically for the sign-in operation, a protected operation and the sign-in page. *(Constitution P4, P5, P7.)*
 
@@ -265,7 +265,7 @@
 | BL-02 | Sign in and protect every page | P1 | M | BL-01 | BG-01, BG-02, BG-04, BR-005, BR-006, BR-008, BR-009, BR-010, BR-011, BR-012, BR-013, BR-014, BR-015, BR-019, BR-034, BR-035, BR-041, QE-01, QE-02, QE-03, QE-04, QE-06, QE-07, QE-08 | 014-admin-sign-in |
 | BL-03 | Lock sign-in after failed attempts | P1 | S | BL-02 | BG-03, BR-016, BR-017, BR-018, BR-019, BR-040, BR-044, BR-045, QE-03, QE-04 | 015-sign-in-lockout |
 | BL-04 | Sign out | P1 | S | BL-02 | BR-019, BR-023, BR-026, BR-027, BR-039, QE-02, QE-03, QE-05 | 016-sign-out |
-| BL-05 | Session expiry and signing in again | P1 | M | BL-02 | BR-020, BR-021, BR-022, BR-023, BR-024, BR-025, BR-038, BR-043, BR-045, QE-05 | 017-session-expiry |
+| BL-05 | Session expiry and signing in again | P1 | M | BL-02 | BR-020, BR-021, BR-022, BR-023, BR-024, BR-025, BR-038, BR-043, BR-045, QE-05, QE-06 | 017-session-expiry |
 | BL-06 | Change password | P2 | S | BL-02, BL-03 | BG-04, BR-006, BR-007, BR-008, BR-019, BR-028, BR-029, BR-030, BR-031, BR-032, BR-034, BR-036, BR-042, QE-03, QE-05, QE-06, QE-07 | 018-change-password |
 | BL-07 | Recover a forgotten password | P2 | S | BL-01, BL-02, BL-03 | BR-004, BR-005, BR-006, BR-007, BR-008, BR-019, BR-033, BR-037, BR-046, QE-03, QE-05 | 019-password-recovery |
 
@@ -466,7 +466,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 | QE-03 | BL-01, BL-02, BL-03, BL-04, BL-06, BL-07 |
 | QE-04 | BL-02, BL-03 |
 | QE-05 | BL-04, BL-05, BL-06, BL-07 |
-| QE-06 | BL-02, BL-06 |
+| QE-06 | BL-02, BL-05, BL-06 |
 | QE-07 | BL-02, BL-06 |
 | QE-08 | BL-02 |
 
@@ -531,6 +531,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 | 2026-10-17 | Q23: forgotten sign-in name | A recovery takes a sign-in name and a new password from the setup values and replaces both; a missing or invalid sign-in name stops the start (BR-033, BR-037, BR-046) |
 | 2026-10-17 | Q24: minutes shown in the lockout message | The time left until the lockout ends, rounded up to a whole minute (15 at the start, 1 in the last minute) (BR-017) |
 | 2026-10-17 | Q25: accented letters in the sign-in name and password | Both are converted to Unicode NFC before checking, storing or hashing; lengths are counted after it; the sign-in name ignores case in every alphabet (BR-006) |
+| 2026-10-17 | QE-06: measurable accessibility target (raised by /sdd-approve) | 100% of fields and buttons on the sign-in page, the sign-in prompt and the change password form are keyboard-usable with a visible label; 100% of error messages are next to the field or form they refer to; QE-06 also covers BL-05 |
 
 ## Revision history
 
