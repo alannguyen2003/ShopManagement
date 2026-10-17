@@ -2,7 +2,8 @@
 
 **Feature:** 013-admin-account-setup
 **Spec:** [spec.md](spec.md)
-**Status:** Draft
+**Status:** Approved
+**Approved:** 2026-10-17
 **Revision:** 1
 **Spec revision:** 1
 **Constitution:** 1.0.0
