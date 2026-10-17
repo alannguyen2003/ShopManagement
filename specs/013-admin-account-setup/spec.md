@@ -3,7 +3,8 @@
 **Feature:** 013-admin-account-setup
 **Branch:** feat/013-admin-account-setup
 **Source:** R002/BL-01
-**Status:** Draft
+**Status:** Approved
+**Approved:** 2026-10-17
 **Revision:** 1
 **Created:** 2026-10-17
 
@@ -178,7 +179,7 @@ As the system operator, I want a warning at each start while the initial passwor
 
 - [x] 1. When the stored Admin password cannot be used (FR-014) and the setup values also hold a valid recovery (019), may that recovery repair it at the same start? → Yes (FR-014; spec 019 needs a matching scenario).
 - [x] 2. Should an initial password (and a recovery's new password, spec 019) that contains a line break, a tab or another control character be refused? → Refuse (FR-007, US2 scenarios 9–10).
-- [ ] 3. **Blocking approval:** the answer to question 2 narrows R002 BR-007 ("any characters are allowed"), which is Approved and takes precedence over this spec. Before `/sdd-approve spec`, run `/sdd-amend requirements R002 "BR-007: a password must not contain control characters (line break, tab or other Unicode control characters); applies at setup, change and recovery"`. Specs 018 and 019 must then apply the same rule. (affects: FR-007, R002 BR-007, specs 018, 019)
+- [x] 3. The answer to question 2 narrows R002 BR-007 ("any characters are allowed"), which takes precedence over this spec. → Resolved: R002 Revision 2 amended BR-007 to refuse control characters at setup, change and recovery. Specs 018 and 019 apply the same rule. (affects: FR-007, R002 BR-007, specs 018, 019)
 
 ## Clarification log
 
