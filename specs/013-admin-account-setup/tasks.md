@@ -106,7 +106,7 @@ Integration test support
 
 - [x] T026 [US1] Write validator tests for accepted values — each gives no problem: "admin" + 16-character password; "  Shop Admin  "; "admin\n"; " admin"; "owner"; 100-code-point name + 12-character password; 128-character password; "  my shop pass  "; NFD "café-shop-2026"; 11 single-code-point emoji + 1 letter (US1 #1, #3–#10) — Application.Tests/AdminAccounts/SetUpAdminAccount/SetUpAdminAccountValidatorTests.cs
 - [x] T027 [US1] Implement the minimum of `SetUpAdminAccountValidator` that T026 needs (the `Validate` signature of contracts/application.md, no problem for valid values); collecting violations and their rule texts comes in T040 — Application/AdminAccounts/SetUpAdminAccount/SetUpAdminAccountValidator.cs
-- [ ] T028 [US1] Write handler tests for creation with NSubstitute fakes and a hand-written `FakeTimeProvider` (overrides `GetUtcNow()`) — Application.Tests/AdminAccounts/SetUpAdminAccount/SetUpAdminAccountHandlerTests.cs, Application.Tests/TestSupport/FakeTimeProvider.cs:
+- [x] T028 [US1] Write handler tests for creation with NSubstitute fakes and a hand-written `FakeTimeProvider` (overrides `GetUtcNow()`) — Application.Tests/AdminAccounts/SetUpAdminAccount/SetUpAdminAccountHandlerTests.cs, Application.Tests/TestSupport/FakeTimeProvider.cs:
   - Call order with no account: `MigrateAsync` → `ListAsync` → validate → `Hash` → `AddAsync` (contracts/application.md).
   - `Hash` receives the NFC password with its spaces; the added account has the trimmed NFC name with its case.
   - `Added` → `Success(Created)` with `CreatedAtUtc` equal to the fake time (FR-013).
