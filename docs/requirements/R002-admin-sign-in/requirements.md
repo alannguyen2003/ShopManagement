@@ -1,9 +1,8 @@
 # Requirements: Admin sign-in
 
 **Requirements:** R002-admin-sign-in
-**Status:** Approved
-**Approved:** 2026-10-17
-**Revision:** 1
+**Status:** Draft
+**Revision:** 2
 **Created:** 2026-10-16
 **Requested by:** alannguyen2003 (shop Admin / product owner)
 **Input:** [input.md](input.md)
@@ -170,7 +169,7 @@
 - **BR-004:** Once the Admin account exists, the setup values do not change it. The only exception is the explicit recovery of BR-033. *(Source: assumption)*
 - **BR-005:** The Admin signs in with a sign-in name and a password. The sign-in name is a free-text name chosen by the system operator at setup, 1 to 100 characters long after leading and trailing spaces are removed. It does not need to be an email address, and no email format is checked. *(Source: input "sign in"; clarification 2026-10-16; length is an assumption)*
 - **BR-006:** Matching the sign-in name ignores letter case and leading/trailing spaces. The password must match exactly: case-sensitive, with spaces kept. *(Source: assumption)*
-- **BR-007:** A password is at least 12 and at most 128 characters long. Any characters are allowed, and there are no composition rules. This applies at setup, at a change and at recovery. *(Source: clarification 2026-10-16)*
+- **BR-007:** A password is at least 12 and at most 128 characters long. Any characters are allowed except control characters: a password must not contain a line break, a tab or any other Unicode control character (category Cc: U+0000–U+001F and U+007F–U+009F), because the single-line password field can never reproduce one. Spaces are allowed and kept. There are no composition rules. This applies at setup, at a change and at recovery. *(Source: clarification 2026-10-16; control characters: clarification 2026-10-17)*
 - **BR-008:** The password is stored only as a salted slow hash, as constitution P4 requires. It is never stored, shown, logged or returned in readable form, and the password field is always masked. *(Source: constitution P4, P7)*
 - **BR-009:** A sign-in succeeds only when the sign-in name and the password both match the Admin account and sign-in is not locked (BR-016). *(Source: input; constitution P5)*
 - **BR-010:** A failed sign-in attempt shows the same message, for example "Sign-in name or password is incorrect", whether the sign-in name is unknown or the password is wrong. It does not say which one was wrong. The entered sign-in name stays and the password field is cleared. *(Source: assumption, security)*
@@ -287,6 +286,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 - Same password set up twice on fresh systems → the two stored hashes differ.
 - No account, setup values missing → the system does not start; the log names the missing setting and contains no password.
 - Initial password of 11 characters → the system does not start; the log gives the reason without the value.
+- Initial password containing a line break → the system does not start; the log gives the reason without the value.
 - Account exists and the setup values have a different password → account unchanged; the old password still works.
 - Account exists and the initial password is still in the setup values → the system starts; the log warns that it should be removed and does not contain the value.
 
@@ -377,7 +377,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 **Key scenarios:**
 - Correct current password and a valid new password entered twice → changed; the old password no longer signs in.
 - Wrong current password → refused; counts as a failed sign-in attempt.
-- New entries differ, or new password too short → refused on the field; password unchanged.
+- New entries differ, new password too short, or new password containing a tab → refused on the field; password unchanged.
 - Signed in on two browsers, password changed in one → the other's next action is refused.
 
 **Not included:** Recovery of a forgotten password (BL-07).
@@ -393,7 +393,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 **Key scenarios:**
 - Reset with a valid new password → the new password signs in; the old one is refused.
 - Reset while sign-in is locked → lockout cleared.
-- Reset with a too-short password → the system does not start; the log gives the reason without the value; the old password stays valid.
+- Reset with a too-short password, or one containing a line break → the system does not start; the log gives the reason without the value; the old password stays valid.
 - Reset applied, Admin then changes the password, system restarted with the reset still in the setup values → the changed password still signs in; the log warns that the reset indication is still present, without the value.
 
 **Not included:** Email reset, security questions (out of scope).
@@ -506,9 +506,11 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 | 2026-10-17 | Q11: page shown after sign-in | Always the product management page; the sign-in page accepts no destination and ignores any given; the sign-in prompt keeps the current view |
 | 2026-10-17 | Q17: initial password left in the setup values | Every start with an existing Admin account logs a warning, without the value, that the initial password should be removed; the system still starts |
 | 2026-10-17 | Timing targets of BG-01, QE-01, QE-04 | Confirmed: 30 s to the product management page, 95% of sign-ins within 2 s, under 100 ms average difference between unknown name and wrong password |
+| 2026-10-17 | Passwords containing control characters (raised by spec 013) | Refused at setup, change and recovery: no line break, tab or other Unicode control character (Cc); spaces still allowed (BR-007) |
 
 ## Revision history
 
 | Rev | Date | Change | Affected items |
 |-----|------|--------|----------------|
 | 1 | 2026-10-16 | Initial version | — |
+| 2 | 2026-10-17 | A password must not contain control characters (line break, tab or other Unicode control characters); applies at setup, change and recovery | BR-007; BL-01, BL-06, BL-07 key scenarios; Clarification log |
