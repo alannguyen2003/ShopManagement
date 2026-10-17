@@ -46,3 +46,10 @@
 - Plans: React Router navigation state lives in history.state and survives reload; "no state on reload → redirect" is wrong.
 - Plans: SQLite returns DateTime with Kind=Unspecified; check UTC round trip in replies built from read-back data (replay paths).
 - Plans: SqliteErrorCode 19 matches any constraint; unique violations are extended code 2067.
+- Plans: when a SC limits the operator to "only N setup values", check every other setting the design requires (e.g. the connection string); P7 makes connection strings secrets, so there is no committed default.
+- Plans: on SQLite the EF Core 9+ migration lock (`__EFMigrationsLock`) is not released when the process is killed; `MigrateAsync` at start needs a timeout and a refusal path, or later starts hang.
+- Plans: EF Core `CommandError` / `SaveChangesFailed` log at Error level with parameter facets even when `Microsoft.EntityFrameworkCore` is set to Warning; expected-failure paths (PK race) need those categories lowered.
+- Plans: data a spec calls "unusable/unreadable", and that a later spec hooks recovery into, must come back through the Result path, not the generic exception catch; EF owned types are optional (nullable columns) unless `Navigation().IsRequired()`.
+- Plans: Application records that carry secrets need a redacting `ToString`/`PrintMembers` (or be a plain class).
+- Plans: a SC requiring "0 occurrences in committed files" conflicts with literal secret values in test source; generate distinctive values at runtime.
+- Plans: with `WebApplicationFactory`, an entry point that returns before `RunAsync` makes the factory's start succeed on a disposed host; test refused starts only as process tests.
