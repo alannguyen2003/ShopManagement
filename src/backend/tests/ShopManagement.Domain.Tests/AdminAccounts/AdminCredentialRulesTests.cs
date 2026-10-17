@@ -12,7 +12,7 @@ public class AdminCredentialRulesTests
     [InlineData("  Shop Admin  ", "Shop Admin")]
     [InlineData("admin\n", "admin")]
     [InlineData(" admin", "admin")]
-    [InlineData("\t admin\r\n", "admin")]
+    [InlineData("\t\u00A0admin\r\n", "admin")]
     [InlineData("Admin", "Admin")]
     public void NormalizeSignInName_Value_TrimsWhitespaceAndKeepsCase(string input, string expected)
     {
@@ -22,24 +22,24 @@ public class AdminCredentialRulesTests
     [Fact]
     public void NormalizeSignInName_DecomposedText_ReturnsComposedForm()
     {
-        var decomposed = "café".Normalize(NormalizationForm.FormD);
+        var decomposed = "cafe\u0301".Normalize(NormalizationForm.FormD);
 
         var result = AdminCredentialRules.NormalizeSignInName(decomposed);
 
-        Assert.Equal("café", result);
+        Assert.Equal("caf\u00E9", result);
     }
 
     [Fact]
     public void NormalizePassword_DecomposedText_ReturnsComposedForm()
     {
-        var decomposed = "café-shop-2026".Normalize(NormalizationForm.FormD);
+        var decomposed = "caf\u00E9-shop-2026".Normalize(NormalizationForm.FormD);
         Assert.Equal(15, decomposed.EnumerateRunes().Count());
 
         var result = AdminCredentialRules.NormalizePassword(decomposed);
 
         Assert.NotNull(result);
         Assert.Equal(14, result.EnumerateRunes().Count());
-        Assert.Equal("café-shop-2026", result);
+        Assert.Equal("caf\u00E9-shop-2026", result);
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public class AdminCredentialRulesTests
     [Fact]
     public void ValidatePassword_FormatCharacter_IsValid()
     {
-        var password = "abcdefghijk​";
+        var password = "abcdefghijk\u200B";
 
         Assert.Empty(AdminCredentialRules.ValidatePassword(password));
     }

@@ -1,2 +1,4 @@
 - `dotnet new tool-manifest --output <dir>` writes `dotnet-tools.json` into `<dir>` itself, not `<dir>/.config/`; use `--output <repo-root>/.config` or move the file afterwards.
 - `dotnet user-secrets init` writes a UTF-8 BOM into the csproj; strip it afterwards (`sed -i '1s/^\xEF\xBB\xBF//'`) unless the file already had one, to keep the diff minimal.
+- The Write and Edit tools turn `\uXXXX` sequences in source text into the literal characters (invisible ones included), and sed mangles the backslashes. To keep escapes in C# files, post-process with a node script that builds the backslash via `String.fromCharCode(92)`, then grep for `[^ -~]` to confirm the file is ASCII only.
+- A Bash heredoc that writes into a directory that does not exist yet fails silently, so run `mkdir -p` first.
