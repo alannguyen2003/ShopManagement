@@ -171,10 +171,22 @@ public sealed class ApiProcess : IDisposable
         {
             if (!_process.HasExited)
             {
-                _process.Kill(entireProcessTree: true);
+                try
+                {
+                    _process.Kill(entireProcessTree: true);
+                }
+                catch (Exception ex) when (ex is InvalidOperationException or System.ComponentModel.Win32Exception)
+                {
+                    // The process exited between the HasExited check and Kill (or is already exiting);
+                    // the wait below confirms it is gone.
+                }
             }
 
-            _process.WaitForExit(10_000);
+            if (_process.WaitForExit(10_000))
+            {
+                // The timeout overload does not flush the async output handlers; the parameterless one does.
+                _process.WaitForExit();
+            }
         }
         catch (InvalidOperationException)
         {

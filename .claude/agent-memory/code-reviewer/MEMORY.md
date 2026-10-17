@@ -4,3 +4,5 @@
 - Project convention: secret-carrying types (command, stored password) are sealed classes, not records, so `ToString()` cannot print values. Check this on every new type that holds a password or hash.
 - Project convention: integration tests use `SqliteTestDatabase` (a shared in-memory SQLite database, one per test) with `ShopApiFactory`. The test credentials come from `TestSecrets` and are never literal.
 - Recurring check: value types with arrays in their constructor (`StoredPassword`) lack null guards, while their neighbours (`AdminAccount.Create`) have them.
+- Recurring check: in test-support code that captures child-process output, `Process.WaitForExit(timeout)` does not flush async output handlers (only the parameterless `WaitForExit()` does); this matters for "no secret in output" assertions.
+- Convention (013): process tests start the built Api with `ApiProcess` (Production, `ASPNETCORE_URLS=http://127.0.0.1:0`, temporary SQLite file); in-process tests use `ShopApiFactory`, which replaces the `SetUpAdminAccountCommand` singleton to inject setup values.

@@ -35,8 +35,8 @@ public class SetUpAdminAccountHandlerTests
     [Fact]
     public async Task HandleAsync_NoAccount_MigratesListsHashesThenAdds()
     {
-        // Validation uses the real, sealed validator and cannot be observed on a substitute;
-        // a valid command reaching Hash proves it ran between ListAsync and Hash.
+        // The validator is the real, sealed class and is not observable on a substitute here;
+        // its refusal branch is covered by the validation tests (T039/T041).
         var token = new CancellationTokenSource().Token;
 
         await CreateHandler().HandleAsync(new SetUpAdminAccountCommand("admin", new string('p', 16)), token);
