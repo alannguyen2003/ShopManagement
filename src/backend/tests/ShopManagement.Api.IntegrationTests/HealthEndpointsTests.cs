@@ -1,14 +1,15 @@
 using System.Net;
-using Microsoft.AspNetCore.Mvc.Testing;
+using ShopManagement.Api.IntegrationTests.TestSupport;
 
 namespace ShopManagement.Api.IntegrationTests;
 
-public class HealthEndpointsTests(WebApplicationFactory<Program> factory)
-    : IClassFixture<WebApplicationFactory<Program>>
+public class HealthEndpointsTests
 {
     [Fact]
     public async Task GetHealth_AppIsRunning_Returns200()
     {
+        using var database = new SqliteTestDatabase();
+        using var factory = new ShopApiFactory(database);
         using var client = factory.CreateClient();
 
         var response = await client.GetAsync("/health");
