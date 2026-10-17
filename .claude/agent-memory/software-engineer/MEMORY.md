@@ -11,3 +11,5 @@
 - A test factory cannot tell a default value from an explicit null in one signature, so use constructor overloads when null has a meaning.
 - Simpler than post-processing escapes: build special characters in test sources with `((char)0x00A0).ToString()` or `char.ConvertFromUtf32(0x1F600)`, which keeps the file ASCII-only.
 - `Process.Kill(entireProcessTree: true)` reliably stops `dotnet <dll>` children; after an exit, call the parameterless `WaitForExit()` so redirected output handlers are flushed before reading the captured text.
+- In-process tests start the host (and so the `Program.cs` startup step) with one `factory.CreateClient()` in a `using`; dispose the factory in the test.
+- `TestSecrets` passwords are 16 characters; slice with `[..12]` when a test needs exactly 12.
