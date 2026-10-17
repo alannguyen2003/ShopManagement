@@ -103,7 +103,7 @@
 
 **Exceptions:**
 - A field is empty or too long → rejected at the boundary with a message on the field. It does not count as a failed sign-in attempt (BR-035).
-- The same sign-in is submitted twice (double click) → at most one Admin session is started (BR-041).
+- The Admin clicks sign in twice (double click) → the page sends it once, so at most one Admin session is started (BR-041).
 - Unknown sign-in name or wrong password → the same message either way. The sign-in name stays in the field, the password field is cleared, and the attempt counts as a failed sign-in attempt (BR-010, BR-016).
 - Sign-in is locked → refused even with the correct password. The page says when to try again. The attempt is logged but does not extend the lockout (BR-016, BR-017, BR-044).
 - The Admin is already signed in and opens the sign-in page → the product management page is shown (BR-013).
@@ -147,7 +147,7 @@
 - Wrong current password → refused. The password is unchanged, and the attempt counts as a failed sign-in attempt (BR-029, BR-030).
 - The two new entries differ, the new password breaks BR-007, or it equals the current password → refused with the reason on the field. The password is unchanged (BR-029).
 - Sign-in is locked (BR-016, BR-030) → the change is refused until the lockout ends (BR-036).
-- The same change is submitted twice (double click) → it is processed once; the repeated submission is not counted as a failed sign-in attempt (BR-042).
+- The Admin clicks save twice (double click) → the page sends the change once, so no repeat is counted as a failed sign-in attempt (BR-042).
 
 ### PR-07 — Recover a forgotten password
 
@@ -158,7 +158,7 @@
 5. The Admin signs in with the new password (PR-02).
 
 **Exceptions:**
-- The new password breaks BR-007 → the system does not start, and it logs the reason without the value. The old password stays valid (BR-037).
+- The new password is missing, empty or breaks BR-007 → the system does not start, and it logs the reason without the value. The old password stays valid (BR-037).
 - The reset indication and the same new password are still in the setup values at a later start → the recovery is not applied again; the system starts and logs a warning without the value (BR-046).
 
 ## Business rules
@@ -167,7 +167,7 @@
 - **BR-002:** The Admin account is created by Admin account setup, outside the application: when the system starts and no Admin account exists, it creates the account from setup values (sign-in name and initial password) that the system operator puts in the environment the system runs in. Setup values never come from committed files, and there is no setup page or separate setup command. *(Source: constitution P1, P7; clarification 2026-10-16)*
 - **BR-003:** The system never creates an Admin account with a built-in or default password. If no Admin account exists and the setup values are missing or invalid, the system does not start, and it logs which setting is missing without its value. *(Source: constitution P7, P9; "does not start" is an assumption)*
 - **BR-004:** Once the Admin account exists, the setup values do not change it. The only exception is the explicit recovery of BR-033. *(Source: assumption)*
-- **BR-005:** The Admin signs in with a sign-in name and a password. The sign-in name is a free-text name chosen by the system operator at setup, 1 to 100 characters long after leading and trailing spaces are removed. It does not need to be an email address, and no email format is checked. *(Source: input "sign in"; clarification 2026-10-16; length is an assumption)*
+- **BR-005:** The Admin signs in with a sign-in name and a password. The sign-in name is a free-text name chosen by the system operator at setup, 1 to 100 characters long after leading and trailing spaces are removed. Like a password (BR-007), it must not contain a line break, a tab or any other Unicode control character (category Cc), because the single-line field can never reproduce one; at setup, such a name is invalid under BR-003. It does not need to be an email address, and no email format is checked. *(Source: input "sign in"; clarification 2026-10-16; length is an assumption; control characters: clarification 2026-10-17)*
 - **BR-006:** Matching the sign-in name ignores letter case and leading/trailing spaces. The password must match exactly: case-sensitive, with spaces kept. *(Source: assumption)*
 - **BR-007:** A password is at least 12 and at most 128 characters long. Any characters are allowed except control characters: a password must not contain a line break, a tab or any other Unicode control character (category Cc: U+0000–U+001F and U+007F–U+009F), because the single-line password field can never reproduce one. Spaces are allowed and kept. There are no composition rules. This applies at setup, at a change and at recovery. *(Source: clarification 2026-10-16; control characters: clarification 2026-10-17)*
 - **BR-008:** The password is stored only as a salted slow hash, as constitution P4 requires. It is never stored, shown, logged or returned in readable form, and the password field is always masked. *(Source: constitution P4, P7)*
@@ -180,7 +180,7 @@
 - **BR-015:** The Admin may be signed in from several browsers at the same time, and each one has its own Admin session. Signing in from one browser does not end the Admin session of another; each session ends on its own (sign-out, expiry, closing its browser), all others end together at a password change (BR-031), and all end at a recovery (BR-033). *(Source: clarification 2026-10-16)*
 - **BR-016:** After 5 failed sign-in attempts in a row, sign-in is locked for 15 minutes. The count and the lockout apply to the whole Admin account, whatever sign-in name was entered and wherever the attempts come from. During a lockout, every sign-in attempt is refused, even with the correct password. *(Source: constitution P5; clarification 2026-10-16)*
 - **BR-017:** From the failed sign-in attempt that starts a lockout and for every attempt during it, the sign-in page says sign-in is temporarily locked and in how many minutes it can be tried again. *(Source: assumption; clarification 2026-10-16)*
-- **BR-018:** The count of failed sign-in attempts in a row goes back to 0 after a successful sign-in and when a lockout ends. *(Source: assumption)*
+- **BR-018:** The count of failed sign-in attempts in a row goes back to 0 after a successful sign-in, when a lockout ends, and when 15 minutes pass with no failed sign-in attempt. So failures more than 15 minutes apart never add up to a lockout. The 15 minutes keep running while the system is stopped (BR-045). *(Source: assumption; 15-minute reset: clarification 2026-10-17)*
 - **BR-019:** These events are logged with their time and kind: a failed sign-in attempt, an attempt refused during a lockout, the start of a lockout, a successful sign-in, a sign-out, a password change (successful or refused) and a recovery. The entered password and the entered sign-in name are never logged, because a password may have been typed into the sign-in name field. *(Source: constitution P7, P9; clarification 2026-10-16)*
 - **BR-020:** An Admin session ends after 30 minutes with no Admin activity (idle timeout). *(Source: clarification 2026-10-16)*
 - **BR-021:** An Admin session ends at the latest 12 hours after sign-in, even with activity (maximum session length). *(Source: clarification 2026-10-16)*
@@ -197,14 +197,14 @@
 - **BR-032:** The Admin is never forced to change the password, including the initial password at the first sign-in. After a successful sign-in the Admin goes straight to the page of BR-011. *(Source: clarification 2026-10-16)*
 - **BR-033:** There is no self-service password reset (no email, no security questions). A forgotten password is recovered only by the system operator: at system start, when the setup values contain an explicit reset indication and a new password, the system replaces the stored password, clears any lockout and ends every Admin session. *(Source: clarification 2026-10-16)*
 - **BR-034:** Every request, including the sign-in page and the sign-in operation, is accepted only over an encrypted connection, so neither passwords nor Admin sessions travel in plain text. Opening a page over an unencrypted connection sends the browser to the same page over an encrypted connection, with no data in the reply. An operation over an unencrypted connection, including sign-in, is refused and not processed, so a password sent that way is never checked or accepted. The system also tells the browser to use only encrypted connections to it from then on. *(Source: constitution P4 "MUST NOT be transmitted in plain text", P5, P7; clarification 2026-10-17)*
-- **BR-035:** Input rejected at the boundary (an empty or too-long field) is not a failed sign-in attempt and does not count toward a lockout. *(Source: assumption)*
+- **BR-035:** At sign-in, the boundary rejects only these inputs, each with a message on the field: an empty sign-in name or one over 100 characters after leading and trailing spaces are removed, and an empty password or one over 128 characters. Input rejected at the boundary is not a failed sign-in attempt and does not count toward a lockout. Any other password, including one shorter than 12 characters or containing a control character, is checked against the Admin account like any other: it gets the generic message of BR-010 and counts as a failed sign-in attempt. Sign-in never reveals the password rules of BR-007. *(Source: assumption; boundary limits: clarification 2026-10-17)*
 - **BR-036:** During a lockout, a password change is refused as well, even with the correct current password. *(Source: assumption, security)*
-- **BR-037:** A recovery (BR-033) with a new password that breaks BR-007 is not applied: the system does not start, it logs the reason without the value, and the old password stays valid. *(Source: assumption)*
+- **BR-037:** A recovery (BR-033) with a new password that is missing, empty or breaks BR-007 is not applied: the system does not start, it logs the reason without the value, and the old password stays valid. *(Source: assumption; missing new password: clarification 2026-10-17)*
 - **BR-038:** If the Admin closes the sign-in prompt of BR-024 without signing in, the Admin stays on the same view, and the next refused operation shows the prompt again. *(Source: assumption)*
 - **BR-039:** After sign-out, going Back in the browser shows no product data or other protected content; the sign-in page is shown instead. *(Source: constitution P5; assumption)*
 - **BR-040:** The lockout limit of BR-016 holds even when many sign-in attempts arrive at the same time: no more credential checks than the limit are made before sign-in is locked. *(Source: constitution P5)*
-- **BR-041:** One sign-in submission starts at most one Admin session, even if it is sent twice. *(Source: assumption)*
-- **BR-042:** One password-change submission is processed once. A repeated submission of the same change is not counted as a failed sign-in attempt. *(Source: assumption, security)*
+- **BR-041:** While a sign-in is waiting for its answer, the sign-in page and the sign-in prompt do not send it again: a second click or Enter has no effect until the answer arrives. So one sign-in submission from the page starts at most one Admin session. The system does not detect duplicate requests sent outside the page. *(Source: clarification 2026-10-17)*
+- **BR-042:** While a password change is waiting for its answer, the change password form does not send it again: a second click or Enter has no effect until the answer arrives. So the page never sends a repeat of a change that has just succeeded, and no such repeat is counted as a failed sign-in attempt. The system does not detect duplicate requests sent outside the page. *(Source: clarification 2026-10-17)*
 - **BR-043:** Only Admin activity (an operation the Admin starts) resets the idle timeout of BR-020. Automatic requests made by the page itself, such as a check of whether the Admin is signed in, do not. *(Source: assumption)*
 - **BR-044:** A sign-in attempt made during a lockout is refused and logged with its time, but it is not counted as a failed sign-in attempt and does not extend the lockout: a lockout always ends 15 minutes after it began. *(Source: clarification 2026-10-16)*
 - **BR-045:** A system restart changes nothing about sign-in: active Admin sessions stay valid, an active lockout continues until 15 minutes after it began, and the count of failed sign-in attempts in a row is kept. The idle timeout (BR-020) and the maximum session length (BR-021) keep running while the system is stopped. Only a recovery (BR-033) clears a lockout and ends every Admin session at start. *(Source: constitution P5; R001 BR-049; clarification 2026-10-16)*
@@ -287,6 +287,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 - No account, setup values missing → the system does not start; the log names the missing setting and contains no password.
 - Initial password of 11 characters → the system does not start; the log gives the reason without the value.
 - Initial password containing a line break → the system does not start; the log gives the reason without the value.
+- Sign-in name containing a tab → the system does not start; the log gives the reason without the value.
 - Account exists and the setup values have a different password → account unchanged; the old password still works.
 - Account exists and the initial password is still in the setup values → the system starts; the log warns that it should be removed and does not contain the value.
 
@@ -298,7 +299,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** Admin, Unauthorised person
 
-**Spec brief:** This item delivers the product management page as an empty, protected layout that R001 BL-02 fills in later. The sign-in page asks for the sign-in name and password, which are validated at the boundary (QE-07); rejected input is not a failed sign-in attempt (BR-035). A correct sign-in name and password start an Admin session and always show the product management page; any destination given to the sign-in page is ignored (BR-009, BR-011, BR-012). A failed sign-in attempt shows one generic message and gives no hint about whether the sign-in name exists (BR-010, QE-04). Every other page and operation, including the existing health check and the OpenAPI document in Development, requires an Admin session: pages show the sign-in page, and operations are refused without data (BR-014, QE-02). Every request is accepted only over an encrypted connection: pages opened unencrypted are sent to the encrypted address, and operations sent unencrypted, sign-in included, are refused (BR-034, QE-08). A double-submitted sign-in starts one Admin session (BR-041). Successful sign-ins are logged with their time, never with the entered sign-in name or password (BR-019).
+**Spec brief:** This item delivers the product management page as an empty, protected layout that R001 BL-02 fills in later. The sign-in page asks for the sign-in name and password, which are validated at the boundary (QE-07); rejected input is not a failed sign-in attempt (BR-035). A correct sign-in name and password start an Admin session and always show the product management page; any destination given to the sign-in page is ignored (BR-009, BR-011, BR-012). A failed sign-in attempt shows one generic message and gives no hint about whether the sign-in name exists (BR-010, QE-04). Every other page and operation, including the existing health check and the OpenAPI document in Development, requires an Admin session: pages show the sign-in page, and operations are refused without data (BR-014, QE-02). Every request is accepted only over an encrypted connection: pages opened unencrypted are sent to the encrypted address, and operations sent unencrypted, sign-in included, are refused (BR-034, QE-08). While a sign-in is waiting for its answer, the page does not send it again (BR-041). Successful sign-ins are logged with their time, never with the entered sign-in name or password (BR-019).
 
 **Key scenarios:**
 - Correct credentials → product management page shown within 2 seconds (QE-01).
@@ -310,6 +311,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 - Health check, or the OpenAPI document in Development, requested without a session → refused.
 - Signed in on one browser, then signs in on a second → both Admin sessions stay active.
 - Empty password, or a 129-character password → rejected at the boundary; not counted as a failed sign-in attempt.
+- 101-character sign-in name → rejected at the boundary; 5-character password → generic message, counted as a failed sign-in attempt.
 - Sign-in page opened over an unencrypted connection → sent to the encrypted address; sign-in operation sent unencrypted with the correct password → refused, no Admin session started.
 
 **Not included:** Lockout (BL-03); sign-out (BL-04); expiry and signing in again (BL-05); any product content on the product management page (R001).
@@ -320,10 +322,11 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** Admin, Unauthorised person
 
-**Spec brief:** The system counts failed sign-in attempts in a row for the whole Admin account, whatever sign-in name was entered and wherever the attempts come from. After 5 failures, sign-in is locked for 15 minutes, and every attempt is refused, even with the correct password (BR-016). The sign-in page says sign-in is locked and in how many minutes to try again (BR-017). The count goes back to 0 after a successful sign-in or when the lockout ends (BR-018). The 5th failure already shows the lockout message (BR-017). Attempts during a lockout are refused and logged, but not counted and do not extend it (BR-044). Every failure, refused attempt and lockout is logged with its time, never with the entered sign-in name or password (BR-019). The limit holds when many attempts arrive at the same time (BR-040). A restart neither clears a lockout nor resets the count (BR-045).
+**Spec brief:** The system counts failed sign-in attempts in a row for the whole Admin account, whatever sign-in name was entered and wherever the attempts come from. After 5 failures, sign-in is locked for 15 minutes, and every attempt is refused, even with the correct password (BR-016). The sign-in page says sign-in is locked and in how many minutes to try again (BR-017). The count goes back to 0 after a successful sign-in, when the lockout ends, or after 15 minutes with no failure (BR-018). The 5th failure already shows the lockout message (BR-017). Attempts during a lockout are refused and logged, but not counted and do not extend it (BR-044). Every failure, refused attempt and lockout is logged with its time, never with the entered sign-in name or password (BR-019). The limit holds when many attempts arrive at the same time (BR-040). A restart neither clears a lockout nor resets the count (BR-045).
 
 **Key scenarios:**
 - 4 failures, then the correct password → signed in; the count goes back to 0.
+- 4 failures, then 16 minutes with no attempt, then 1 failure → not locked; the count is 1.
 - 5 failures → the 5th already shows "locked, try again in 15 minutes"; the correct password is then refused with the same message.
 - Attempts 10 minutes into a lockout → refused and logged; the lockout still ends 15 minutes after it began.
 - 15 minutes after the lockout began → the correct password works.
@@ -372,7 +375,7 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** Admin
 
-**Spec brief:** The signed-in Admin opens the change password form and enters the current password and the new password twice (BR-028). The change is refused, with the reason and the password unchanged, if the current password is wrong, the new entries differ, the new password breaks BR-007, or it equals the current one (BR-029). A wrong current password counts toward the lockout (BR-030). On success, the new hash is stored (BR-008), every other Admin session ends, and the current one stays active (BR-031). During a lockout the change is refused (BR-036); a double-submitted change is processed once and not counted as a failure (BR-042). The change is never forced, not even for the initial password (BR-032). Every successful or refused change is logged with its time, never with a password (BR-019).
+**Spec brief:** The signed-in Admin opens the change password form and enters the current password and the new password twice (BR-028). The change is refused, with the reason and the password unchanged, if the current password is wrong, the new entries differ, the new password breaks BR-007, or it equals the current one (BR-029). A wrong current password counts toward the lockout (BR-030). On success, the new hash is stored (BR-008), every other Admin session ends, and the current one stays active (BR-031). During a lockout the change is refused (BR-036); while a change is waiting for its answer, the form does not send it again (BR-042). The change is never forced, not even for the initial password (BR-032). Every successful or refused change is logged with its time, never with a password (BR-019).
 
 **Key scenarios:**
 - Correct current password and a valid new password entered twice → changed; the old password no longer signs in.
@@ -388,12 +391,13 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 
 **Actors:** System operator, Admin
 
-**Spec brief:** There is no self-service reset. The system operator sets a new password through the setup values with an explicit reset indication (BR-033). At startup, the system checks the new password (BR-007), replaces the stored hash (BR-008), clears any lockout and ends every Admin session (QE-05). An invalid new password is not applied and the old one stays valid (BR-037). A recovery is applied only once: if the same reset is still in the setup values at a later start, it is ignored and a warning is logged without the value (BR-046). Without the reset indication, the setup values are ignored (BR-004). A recovery is logged with its time, never with the password (BR-019).
+**Spec brief:** There is no self-service reset. The system operator sets a new password through the setup values with an explicit reset indication (BR-033). At startup, the system checks the new password (BR-007), replaces the stored hash (BR-008), clears any lockout and ends every Admin session (QE-05). A missing, empty or invalid new password is not applied: the system does not start, and the old one stays valid (BR-037). A recovery is applied only once: if the same reset is still in the setup values at a later start, it is ignored and a warning is logged without the value (BR-046). Without the reset indication, the setup values are ignored (BR-004). A recovery is logged with its time, never with the password (BR-019).
 
 **Key scenarios:**
 - Reset with a valid new password → the new password signs in; the old one is refused.
 - Reset while sign-in is locked → lockout cleared.
 - Reset with a too-short password, or one containing a line break → the system does not start; the log gives the reason without the value; the old password stays valid.
+- Reset indication with no new password → the system does not start; the log says the new password is missing; the old password stays valid.
 - Reset applied, Admin then changes the password, system restarted with the reset still in the setup values → the changed password still signs in; the log warns that the reset indication is still present, without the value.
 
 **Not included:** Email reset, security questions (out of scope).
@@ -481,6 +485,12 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 - [x] 15. What does a system restart do to Admin sessions and to an active lockout? Recommended: the lockout survives a restart (only recovery clears it); state whether sessions survive. (affects: BR-016, BR-020, BR-021, BR-033, R001 BR-049, BL-03, BL-05, BL-07)
 - [x] 16. Logging: may the entered sign-in name be logged with a failed sign-in attempt (it may contain a password typed in the wrong field)? Are successful sign-ins, sign-outs, password changes and recoveries logged too? (affects: BR-019, QE-03, BL-03)
 - [x] 17. Should the system log a warning (without the value) at startup when the Admin account exists but the initial password is still present in the setup values? (affects: BR-004, BG-04, BL-01)
+- [x] 18. Double submission: does the page send a sign-in or password change only once, or does the server detect duplicates? (affects: BR-041, BR-042, BL-02, BL-06)
+- [x] 19. Does the count of failed sign-in attempts in a row ever go back to 0 without a success or a lockout, so typos days apart never add up? (affects: BR-018, BG-03, BL-03)
+- [x] 20. At sign-in, which inputs are rejected at the boundary: only empty and too long, or also passwords that break BR-007? (affects: BR-035, QE-07, BL-02)
+- [x] 21. May the sign-in name contain control characters, as the password may not (BR-007)? (affects: BR-005, BR-003, BL-01)
+- [x] 22. What happens at start when the reset indication is set but the new password is missing or empty? (affects: BR-037, BL-07)
+- [ ] 23. How does the Admin get back in if the sign-in name is forgotten? Recovery (BR-033) replaces only the password, and the sign-in name is never shown or logged. (affects: BR-033, BR-019, BL-07)
 
 ## Clarification log
 
@@ -507,6 +517,11 @@ The P1 items BL-01 to BL-05 form the MVP, the minimum that meets constitution P5
 | 2026-10-17 | Q17: initial password left in the setup values | Every start with an existing Admin account logs a warning, without the value, that the initial password should be removed; the system still starts |
 | 2026-10-17 | Timing targets of BG-01, QE-01, QE-04 | Confirmed: 30 s to the product management page, 95% of sign-ins within 2 s, under 100 ms average difference between unknown name and wrong password |
 | 2026-10-17 | Passwords containing control characters (raised by spec 013) | Refused at setup, change and recovery: no line break, tab or other Unicode control character (Cc); spaces still allowed (BR-007) |
+| 2026-10-17 | Double submission of a sign-in or password change | The page does not send it again while it waits for the answer; no server-side duplicate detection (BR-041, BR-042) |
+| 2026-10-17 | Old failed sign-in attempts adding up to a lockout | The count goes back to 0 after 15 minutes with no failed sign-in attempt, in addition to a successful sign-in and the end of a lockout (BR-018) |
+| 2026-10-17 | What sign-in rejects at the boundary | Only empty fields, a sign-in name over 100 characters after trimming and a password over 128 characters; a short password or one with a control character is a normal failed sign-in attempt (BR-035) |
+| 2026-10-17 | Control characters in the sign-in name | Same rule as passwords: a sign-in name with a Unicode control character (Cc) is invalid at setup, and the system does not start (BR-005, BR-003) |
+| 2026-10-17 | Reset indication without a new password | The recovery is not applied: the system does not start, logs that the new password is missing, and the old password stays valid (BR-037) |
 
 ## Revision history
 
