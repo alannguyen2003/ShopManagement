@@ -4,3 +4,5 @@
 - A Bash heredoc that writes into a directory that does not exist yet fails silently, so run `mkdir -p` first.
 - A test that only uses `Assert.Throws<SqliteException>` passes spuriously when the table is missing. Assert on the message or extended error code, so the red step fails for the right reason.
 - A Bash heredoc containing escaped quotes (`\"`) can fail with "unexpected EOF". Create such C# files with the Write tool instead.
+- EF Core `IsRequired()` makes the generated reader throw `InvalidOperationException` ("The data is NULL at ordinal N") on a NULL value even when the record property is nullable; casting to a nullable type in `Select` or using `EF.Property<T?>` does not change that.
+- To read damaged rows (NULL in `IsRequired()` columns) through EF Core, use a separate keyless type with nullable, non-required properties, mapped with `HasNoKey()` and `ToView("<table>")`. It stays out of migrations, and a pending-model-changes check stays clean.

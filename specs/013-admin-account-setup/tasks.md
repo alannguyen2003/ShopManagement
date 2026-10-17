@@ -72,7 +72,7 @@ Infrastructure (tested from IntegrationTests, as there is no Infrastructure test
   - Password columns NULL (the test rebuilds the table without NOT NULL) → an account whose password is not usable, no exception.
   - `PasswordIterations` stored as text → an account whose password is not usable.
   - `SignInName` NULL → failure `StoredDataErrors.UnreadableStoredData`, code `StoredData.Unreadable` (FR-014).
-- [ ] T021 Make T020 pass — Application/Common/StoredDataErrors.cs, Infrastructure/Persistence/AdminAccountRow.cs, Configurations/AdminAccountRowConfiguration.cs, AppDbContext.cs, Repositories/AdminAccountRepository.cs:
+- [x] T021 Make T020 pass — Application/Common/StoredDataErrors.cs, Infrastructure/Persistence/AdminAccountRow.cs, Configurations/AdminAccountRowConfiguration.cs, AppDbContext.cs, Repositories/AdminAccountRepository.cs:
   - Create `StoredDataErrors` with `UnreadableStoredData`.
   - Add the keyless read model `AdminAccountRow`: `Id` is `int`, and the other five properties are nullable and not required; `HasNoKey()` and `ToView("AdminAccounts")` in `AdminAccountRowConfiguration`. Expose it as `AppDbContext.AdminAccountRows` (data-model.md, research R3).
   - Implement `AdminAccountRepository`:

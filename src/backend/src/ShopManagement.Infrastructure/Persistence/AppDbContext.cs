@@ -6,6 +6,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
 {
     public DbSet<AdminAccountRecord> AdminAccounts => Set<AdminAccountRecord>();
 
+    public DbSet<AdminAccountRow> AdminAccountRows => Set<AdminAccountRow>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
