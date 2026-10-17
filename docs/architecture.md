@@ -1,9 +1,9 @@
 # Architecture — Shop Management
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Status:** Active
 **Created:** 2026-10-16
-**Last amended:** 2026-10-16
+**Last amended:** 2026-10-17
 **Backend:** .NET 10 · Clean Architecture
 **Frontend:** React + Vite · TypeScript
 **Database:** SQLite
@@ -106,6 +106,8 @@ Only these packages may be added. "Allowed in": .NET layer(s) for `nuget` (`Doma
 | `Microsoft.EntityFrameworkCore` | nuget | Infrastructure | ORM |
 | `Microsoft.EntityFrameworkCore.Design` | nuget | Api | EF Core migrations tooling |
 | `Microsoft.EntityFrameworkCore.Sqlite` | nuget | Infrastructure, Tests | SQLite provider |
+| `dotnet-ef` | nuget | tool | Generate EF Core code-first migrations into `Infrastructure/Persistence/Migrations/` |
+| `dotnet-reportgenerator-globaltool` | nuget | tool | Merge the Cobertura reports of all backend test projects and fail below 80% line coverage (constitution P3) |
 | `react` | npm | runtime | UI library |
 | `react-dom` | npm | runtime | UI library |
 | `react-router` | npm | runtime | Routing |
@@ -115,6 +117,7 @@ Only these packages may be added. "Allowed in": .NET layer(s) for `nuget` (`Doma
 | `vite` | npm | dev | Build tool, also used by Vitest |
 | `@vitejs/plugin-react` | npm | dev | React support for Vite / Vitest |
 | `vitest` | npm | dev | Unit test runner |
+| `@vitest/coverage-v8` | npm | dev | Frontend coverage with an 80% line threshold (constitution P3) |
 | `jsdom` | npm | dev | DOM for unit tests |
 | `@testing-library/react` | npm | dev | Component tests |
 | `@testing-library/dom` | npm | dev | Component tests |
@@ -127,7 +130,7 @@ Only these packages may be added. "Allowed in": .NET layer(s) for `nuget` (`Doma
 ## Forbidden
 
 - Any package not in the table above, including "small" helpers; copy-pasted library code; downloading binaries or scripts.
-- Global installs (`npm -g`, `dotnet tool install -g`), system installers (`winget`, `choco`…), other ecosystems (`pip`, `cargo`…).
+- Global installs (`npm -g`, `dotnet tool install -g`), system installers (`winget`, `choco`…), other ecosystems (`pip`, `cargo`…). .NET tools (`tool` rows) are installed only in the local manifest `.config/dotnet-tools.json` at the repository root.
 - A second way of doing something the stack already does (another HTTP client, state library, test framework, ORM, mapper).
 - Business logic in `Api` or in the frontend.
 - New top-level folders under `src/` or new projects in the solution without an architecture change.
@@ -143,3 +146,4 @@ Only these packages may be added. "Allowed in": .NET layer(s) for `nuget` (`Doma
 | Version | Date | Change |
 |---------|------|--------|
 | 1.0.0 | 2026-10-16 | Scaffold: .NET Clean Architecture backend, React + Vite frontend, SQLite |
+| 1.1.0 | 2026-10-17 | Add `dotnet-ef` (tool) for code-first migrations; add `dotnet-reportgenerator-globaltool` (tool) and `@vitest/coverage-v8` (npm dev) to enforce P3 coverage; local tool manifest at `.config/dotnet-tools.json` |
