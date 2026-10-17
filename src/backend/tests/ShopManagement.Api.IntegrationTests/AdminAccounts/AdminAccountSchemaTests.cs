@@ -7,6 +7,9 @@ namespace ShopManagement.Api.IntegrationTests.AdminAccounts;
 public sealed class AdminAccountSchemaTests : IDisposable
 {
     private const int PrimaryKeyViolation = 1555;
+    private const int CheckViolation = 275;
+    private const int NotNullViolation = 1299;
+    private const int ConstraintError = 19;
 
     private readonly SqliteConnection _connection;
 
@@ -55,6 +58,8 @@ public sealed class AdminAccountSchemaTests : IDisposable
     {
         var exception = Assert.Throws<SqliteException>(() => Insert(2));
 
+        Assert.Equal(ConstraintError, exception.SqliteErrorCode);
+        Assert.Equal(CheckViolation, exception.SqliteExtendedErrorCode);
         Assert.Contains("CK_AdminAccounts_SingleRow", exception.Message);
     }
 
@@ -65,36 +70,46 @@ public sealed class AdminAccountSchemaTests : IDisposable
 
         var exception = Assert.Throws<SqliteException>(() => Insert(1));
 
+        Assert.Equal(ConstraintError, exception.SqliteErrorCode);
         Assert.Equal(PrimaryKeyViolation, exception.SqliteExtendedErrorCode);
     }
 
     [Fact]
     public void Insert_NullSignInName_Fails()
     {
-        Assert.Throws<SqliteException>(() => Insert(1, signInName: null));
+        AssertNotNullViolation(() => Insert(1, signInName: null), "SignInName");
     }
 
     [Fact]
     public void Insert_NullPasswordAlgorithm_Fails()
     {
-        Assert.Throws<SqliteException>(() => Insert(1, algorithm: null));
+        AssertNotNullViolation(() => Insert(1, algorithm: null), "PasswordAlgorithm");
     }
 
     [Fact]
     public void Insert_NullPasswordSalt_Fails()
     {
-        Assert.Throws<SqliteException>(() => Insert(1, salt: null, useDefaultBlobs: false, hash: new byte[32]));
+        AssertNotNullViolation(() => Insert(1, salt: null, useDefaultBlobs: false, hash: new byte[32]), "PasswordSalt");
     }
 
     [Fact]
     public void Insert_NullPasswordIterations_Fails()
     {
-        Assert.Throws<SqliteException>(() => Insert(1, iterations: null));
+        AssertNotNullViolation(() => Insert(1, iterations: null), "PasswordIterations");
     }
 
     [Fact]
     public void Insert_NullPasswordHash_Fails()
     {
-        Assert.Throws<SqliteException>(() => Insert(1, hash: null, useDefaultBlobs: false, salt: new byte[16]));
+        AssertNotNullViolation(() => Insert(1, hash: null, useDefaultBlobs: false, salt: new byte[16]), "PasswordHash");
+    }
+
+    private static void AssertNotNullViolation(Action insert, string column)
+    {
+        var exception = Assert.Throws<SqliteException>(insert);
+
+        Assert.Equal(ConstraintError, exception.SqliteErrorCode);
+        Assert.Equal(NotNullViolation, exception.SqliteExtendedErrorCode);
+        Assert.Contains("NOT NULL constraint failed: AdminAccounts." + column, exception.Message);
     }
 }
