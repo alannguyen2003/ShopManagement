@@ -1,7 +1,8 @@
 # Requirements: Admin sign-in
 
 **Requirements:** R002-admin-sign-in
-**Status:** Draft
+**Status:** Approved
+**Approved:** 2026-10-17
 **Revision:** 2
 **Created:** 2026-10-16
 **Requested by:** alannguyen2003 (shop Admin / product owner)
