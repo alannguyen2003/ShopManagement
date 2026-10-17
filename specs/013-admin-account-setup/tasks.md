@@ -3,9 +3,8 @@
 **Feature:** 013-admin-account-setup
 **Plan:** [plan.md](plan.md)
 **Status:** Draft
-**Approved:** 2026-10-17
-**Revision:** 1
-**Plan revision:** 1
+**Revision:** 2
+**Plan revision:** 2
 **Created:** 2026-10-17
 
 Legend: `[P]` can run in parallel · `[USn]` belongs to user story n · tests always come before code.
@@ -57,7 +56,13 @@ Infrastructure (tested from IntegrationTests, as there is no Infrastructure test
   - The hash of "  my shop pass  " is not reproduced by recomputing "my shop pass" with the same salt (US1 #8).
 - [x] T016 Implement `Pbkdf2PasswordHasher` (static `Rfc2898DeriveBytes.Pbkdf2`, salt from `RandomNumberGenerator`, password bytes cleared with `CryptographicOperations.ZeroMemory`) so T015 passes — Infrastructure/Security/Pbkdf2PasswordHasher.cs
 - [x] T017 Write schema tests against a migrated in-memory SQLite database: inserting `Id = 2` fails on `CK_AdminAccounts_SingleRow`; a second row with `Id = 1` fails with extended code 1555; inserting NULL into each of the five non-key columns fails (`Id` is the rowid, so SQLite replaces a NULL there) (FR-001) — IntegrationTests/AdminAccounts/AdminAccountSchemaTests.cs
-- [x] T018 Implement `AdminAccountRecord`, `AppDbContext` (`DbSet<AdminAccountRecord> AdminAccounts`), `AdminAccountRecordConfiguration` (table `AdminAccounts`, `ValueGeneratedNever`, `IsRequired()` on every column, CHECK `"Id" = 1`) per data-model.md, and `DesignTimeDbContextFactory` (`Data Source=:memory:`, no secret) — Infrastructure/Persistence/AdminAccountRecord.cs, AppDbContext.cs, DesignTimeDbContextFactory.cs, Configurations/AdminAccountRecordConfiguration.cs
+- [ ] T018 (redo — plan rev 2) Implement per data-model.md — Infrastructure/Persistence/AdminAccountRecord.cs, AppDbContext.cs, DesignTimeDbContextFactory.cs, Configurations/AdminAccountRecordConfiguration.cs:
+  - `AdminAccountRecord` is the write model. Its properties are non-nullable `string`, `byte[]` and `int`, matching the `IsRequired()` columns. They are declared `required`, so CS8618 is satisfied without `null!`.
+  - `AppDbContext` has `DbSet<AdminAccountRecord> AdminAccounts`.
+  - `AdminAccountRecordConfiguration`: table `AdminAccounts`, `ValueGeneratedNever`, `IsRequired()` on every column, `HasCheckConstraint("CK_AdminAccounts_SingleRow", "\"Id\" = 1")`.
+  - `DesignTimeDbContextFactory` (`Data Source=:memory:`, no secret) stays unchanged.
+  - Done when `dotnet build src/ShopManagement.Infrastructure` (from `src/backend`) has 0 warnings.
+  - The uncommitted `AdminAccountRepository` and `StoredDataErrors` drafts from the first T021 attempt belong to T021. Keep them out of the T018 commit, and set the draft repository aside if it no longer compiles. T017 and T020 run again in T021.
 - [x] T019 Generate the first migration so T017 passes: from `src/backend`, `dotnet ef migrations add AddAdminAccounts --project src/ShopManagement.Infrastructure --startup-project src/ShopManagement.Api --output-dir Persistence/Migrations` — Infrastructure/Persistence/Migrations/
 - [x] T020 Write tests for `AdminAccountRepository` — IntegrationTests/AdminAccounts/AdminAccountRepositoryTests.cs:
   - `ListAsync` on an empty table → success with no account.
@@ -66,7 +71,13 @@ Infrastructure (tested from IntegrationTests, as there is no Infrastructure test
   - Password columns NULL (the test rebuilds the table without NOT NULL) → an account whose password is not usable, no exception.
   - `PasswordIterations` stored as text → an account whose password is not usable.
   - `SignInName` NULL → failure `StoredDataErrors.UnreadableStoredData`, code `StoredData.Unreadable` (FR-014).
-- [ ] T021 Create `StoredDataErrors` with `UnreadableStoredData` (Application/Common/StoredDataErrors.cs) and implement `AdminAccountRepository` (`ListAsync` without tracking, converting with `AdminAccount.Restore`; `AddAsync` catches only a `DbUpdateException` whose `SqliteException` has extended code 1555, detaches the record and returns `AlreadyExists`, and rethrows anything else) so T020 passes — Infrastructure/Persistence/Repositories/AdminAccountRepository.cs
+- [ ] T021 Make T020 pass — Application/Common/StoredDataErrors.cs, Infrastructure/Persistence/AdminAccountRow.cs, Configurations/AdminAccountRowConfiguration.cs, AppDbContext.cs, Repositories/AdminAccountRepository.cs:
+  - Create `StoredDataErrors` with `UnreadableStoredData`.
+  - Add the keyless read model `AdminAccountRow`: `Id` is `int`, and the other five properties are nullable and not required; `HasNoKey()` and `ToView("AdminAccounts")` in `AdminAccountRowConfiguration`. Expose it as `AppDbContext.AdminAccountRows` (data-model.md, research R3).
+  - Implement `AdminAccountRepository`:
+    - `ListAsync` reads `AdminAccountRows` and converts each row with `AdminAccount.Restore`. A NULL password field becomes an empty value or 0; a NULL name gives `UnreadableStoredData`.
+    - `AddAsync` writes an `AdminAccountRecord`. It catches only a `DbUpdateException` whose `SqliteException` has extended code 1555, detaches the record and returns `AlreadyExists`, and rethrows anything else.
+  - Then run the schema (T017) and repository (T020) tests (plan "Risks"). Both call `Database.Migrate()`, which raises EF Core's pending-model-changes error if there is one; T022 re-checks this through `DatabaseMigrator`. If it reports pending changes, run (from `src/backend`) `dotnet ef migrations remove --project src/ShopManagement.Infrastructure --startup-project src/ShopManagement.Api`, then T019's add command. The T017 schema tests must stay green.
 - [ ] T022 Write tests for `DatabaseMigrator` — IntegrationTests/AdminAccounts/DatabaseMigratorTests.cs:
   - The migrator is built as in T023 (configuration + `AppDbContext` + lock timeout).
   - Connection string absent or empty → failure `ConnectionStringMissing`, code `StoredData.ConnectionStringMissing`; building the `AppDbContext` for it does not throw.
@@ -204,16 +215,16 @@ Integration test support
 - [ ] T055 [P] Write a guard test: no route in the `EndpointDataSource` of `ShopApiFactory` matches `register`, `signup`, `sign-up`, `users`, `roles`, or `POST` on an `accounts` collection (SC-003, FR-001, P1) — IntegrationTests/AdminAccounts/NoAccountCreationRoutesTests.cs
 - [ ] T056 Replace "Run tests" in `CLAUDE.md` with the backend coverage command of research R9 (ReportGenerator, 80% line threshold, migrations and `DesignTimeDbContextFactory` excluded). Kit configuration: its own `chore:` commit; if a hook blocks it, ask the user — CLAUDE.md
 - [ ] T057 Run the new "Run tests" command and the "Lint / typecheck" command: backend line coverage > 80% (P3), 0 warnings (P9); add tests for any uncovered production branch that is reachable in-process — src/backend/tests/
-- [ ] T058 Review every log message and error text against contracts/startup.md and NFR-003: no value, length or hash; no `EnableSensitiveDataLogging`; no empty `catch`; the values used for log and storage searches always come from `TestSecrets` (SC-001) — src/backend/
+- [ ] T058 Review every log message and error text against contracts/startup.md and NFR-003: no value, length or hash; no `EnableSensitiveDataLogging`; no empty `catch`; no `FromSql*`, `SqlQuery*` or `ExecuteSql*` in `src/backend/src/` (P6, research R3); the values used for log and storage searches always come from `TestSecrets` (SC-001) — src/backend/
 
 **Checkpoint:** run `/sdd-verify`.
 
 ## Dependencies
 
 - Phase 1 → Phase 2 → US1 → US2 → US3 → US4 → Polish. US2, US3 and US4 each extend the handler, the handler tests and `Program.cs` that US1 creates, so they run in order.
-- Inside Phase 2: T007 → T010 (`Create` uses the rules); T009 → T010; T011 + T014 → T016, T018, T020; T019 needs T001 (dotnet-ef) and T018; T020–T023 need T019; T025 needs T013 (`SetUpAdminAccountCommand`) and T019.
+- Inside Phase 2: T007 → T010 (`Create` uses the rules); T009 → T010; T011 + T014 → T016, T018, T020; T019 needs T001 (dotnet-ef) and T018; T020–T023 need T019; the T018 redo and T021 run back to back; T019 is not rerun after the redo unless T021's pending-changes check requires it; T022/T023 need T021 (T023 extends `StoredDataErrors`, and the model must be final); T025 needs T013 (`SetUpAdminAccountCommand`) and T019.
 - T042 needs `RepositoryRoot` (T032) to find the committed `appsettings*.json` files.
-- T017 fails until T019 generates the migration (T018 alone does not create the table).
+- T017 must stay green after the T018 redo and T021.
 - T022/T023 are high risk: if the migration lock ignores cancellation, stop the build and revise the plan.
 - T034, T043, T048, T052 need T032 (process helpers) and a build of the Api (`dotnet test` builds it, as the test project references the Api).
 - T037, T044, T049 and T054 all change `Program.cs`; T047 and T053 change the handler: never run them in parallel.
@@ -284,7 +295,7 @@ Integration test support
 | Edge: interrupted creation | T020, T028 |
 | Edge: concurrent starts | T020, T046 |
 | Edge: no stored data / older structure | T022, T034 (older structure: first testable with 001's second migration, plan "Risks") |
-| Edge: damaged stored data / several accounts | T020, T045, T048 |
+| Edge: damaged stored data / several accounts | T020, T021, T045, T047, T048, T049 |
 | Edge: reset indication with no account | — (019; ignored like any unknown setting, nothing to build) |
 | Edge: sign-in name changed later | T045, T046 (US3 #1) |
 | P3 coverage | T056, T057 |
@@ -295,3 +306,4 @@ Integration test support
 | Rev | Date | Plan rev | Change |
 |-----|------|----------|--------|
 | 1 | 2026-10-17 | 1 | Initial version |
+| 2 | 2026-10-17 | 2 | Plan rev 2: T018 reset to redo (`AdminAccountRecord` becomes the write model with non-nullable properties). T021 adds the keyless read model `AdminAccountRow` (`ToView("AdminAccounts")`), `AppDbContext.AdminAccountRows`, and the pending-model-changes check, with regeneration of `AddAdminAccounts` if needed. Dependencies updated; T058 checks for raw SQL; the damaged-data traceability row is completed. Known deviations from the plan, kept from rev 1 and to fix at the next plan amend: T025 creates `SqliteTestDatabase` per test, not as a class fixture (plan R10, file structure); T030 checks DI descriptors only (plan file structure says "resolves the handler"; T033 resolves it); the plan's "Risks" names migrator tests for the read-model check, but those come in T022. |

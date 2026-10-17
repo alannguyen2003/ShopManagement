@@ -59,3 +59,7 @@
 - Tasks: SQLite `INTEGER PRIMARY KEY` turns an inserted NULL into a new rowid, so "NULL into Id fails" tests are wrong.
 - Tasks: when a startup handler runs inside `WebApplicationFactory`, a parallel-handler race test cannot use the factory (the start already created the row); it needs its own service provider with the app's logging filters.
 - Plans/Tasks: DI builds `AppDbContext` (and its `UseSqlite(connString)` options) before handler code runs, so a "connection string missing" check inside a later service is unreachable if options construction throws.
+- Tasks: when a persistence model becomes non-nullable under Nullable + warnings-as-errors, the task must say how CS8618 is satisfied (`required` or initializers, never `null!`).
+- Tasks: a "run X tests" verification step may only name tests written by earlier tasks. Check the plan's "Risks" wording too, since tasks copy it.
+- Tasks: when a done task is reset for a redo, check the working tree for uncommitted drafts from the failed attempt that will stop compiling, and say which task owns them.
+- EF Core facts (013): the snapshot records a required `int?` as `Property<int>`, and the pending-model-changes check ignores `ToView` entity types. So a nullable-to-non-nullable record change or a keyless `ToView` read model does not force regenerating a migration.
