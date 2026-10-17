@@ -4,16 +4,16 @@
 **Plan:** [plan.md](plan.md)
 **Created:** 2026-10-17
 
-The user's direction: backend built **code first** (EF Core model → migrations) and data stored in **SQLite**. Both match `docs/architecture.md` v1.0.0. The decisions below cover what the direction and the architecture leave open.
+The user's direction: backend built **code first** (EF Core model → migrations) and data stored in **SQLite**. Both match `docs/architecture.md` v1.1.0. The decisions below cover what the direction and the architecture leave open.
 
 ## R1. Creating the schema: EF Core migrations vs `EnsureCreated`
 
 | Option | Pros | Cons |
 |--------|------|------|
-| A. EF Core migrations, generated with the local `dotnet-ef` tool, applied at startup with `Database.MigrateAsync()` | Code first, as the user asked. The architecture already names `Infrastructure/Persistence/Migrations/`. Later features (002–012, 013+) change the schema without losing data. Integration tests run the real migrations. | Needs the `dotnet-ef` tool, which is not in the "Allowed dependencies" table yet. |
+| A. EF Core migrations, generated with the local `dotnet-ef` tool, applied at startup with `Database.MigrateAsync()` (through an Infrastructure `MigrateDatabaseAsync()` extension called from `Program.cs`) | Code first, as the user asked. The architecture already names `Infrastructure/Persistence/Migrations/`. Later features (002–012, 013+) change the schema without losing data. Integration tests run the real migrations. | Needs the `dotnet-ef` local tool (allowed since architecture v1.1.0). |
 | B. `Database.EnsureCreated()` | No tool. | Cannot change an existing database: the first schema change in 002+ would need the database dropped. Not "migrations" as the architecture says. |
 
-**Choice: A.** `dotnet-ef` goes in a local tool manifest (`.config/dotnet-tools.json`), never global. It needs `/sdd-architecture` (see plan, "Dependencies requiring /sdd-architecture"). Migrating at startup is enough for a single-instance, single-admin app with one SQLite file.
+**Choice: A.** `dotnet-ef` goes in a local tool manifest (`.config/dotnet-tools.json`), never global. Architecture v1.1.0 allows it as a `tool`, in that manifest. Migrating at startup is enough for a single-instance, single-admin app with one SQLite file.
 
 ## R2. SKU uniqueness ignoring case and leading/trailing spaces (FR-005, FR-008, edge case "same moment from two tabs")
 
@@ -40,7 +40,7 @@ The user's direction: backend built **code first** (EF Core model → migrations
 - The add form creates one key when it is mounted. It keeps the key across failed saves and creates a new one when the form opens again ("add another", Back from the confirmation).
 - The key is **required** on every add request, and a missing or non-UUID key is rejected (400). Requests that bypass the form follow the same rule (FR-018).
 - The key is checked **before** field validation. If it is already stored, the system returns that stored product (200) whatever the body says, and the confirmation shows the values actually saved (FR-013). If the Admin changed a value after a failure whose save had in fact succeeded, the confirmation shows the stored values. This is the "same Save action" of FR-014.
-- If two requests with the same key race, the unique index fails one of them, and the repository then returns the stored product.
+- If two requests with the same key race, the unique index fails one of them, and the repository then returns the stored product. If the twin commits between the replay check and the SKU uniqueness check, the handler looks up the key again before reporting "SKU already used", so it returns the replay instead.
 
 ## R4. Rejecting unexpected fields and wrongly typed values with field messages (FR-009, US1 #6, US2 #10, NFR-006)
 
@@ -49,7 +49,7 @@ The user's direction: backend built **code first** (EF Core model → migrations
 | A. Endpoint takes `HttpRequest`, and `CreateProductRequestReader` (Api) parses the body with `JsonDocument.ParseAsync`, then checks property names and JSON types | Names the unexpected field. Gives a price-field message for `1500.5`, `"abc"`, `1e30`. Controls the error text, so no type names leak. Duplicate property names can be rejected. | A small hand-written reader. |
 | B. Typed record + `JsonUnmappedMemberHandling.Disallow` | Less code. | Binding fails before our code runs: a generic 400 with no field message, and the exception text names .NET types (P7). |
 
-**Choice: A.** The reader parses the body itself, because Minimal API binding (even to `JsonElement`) parses JSON before our code runs. In Development (`ThrowOnBadRequest`), malformed JSON would then reach `UseExceptionHandler` as a 500. The reader only checks structure (allowed names `name`, `sku`, `price`, `description`; strings or null; price a JSON integer). Rule checks (lengths, range, required) live in the Application validator, so a valid-typed request gets all field messages at once (FR-012). A structurally wrong request (sent outside the form) is answered with its structural errors only.
+**Choice: A.** The reader parses the body itself, because Minimal API binding (even to `JsonElement`) parses JSON before our code runs. In Development (`ThrowOnBadRequest`), malformed JSON would then reach `UseExceptionHandler` as a 500. The reader only checks structure (allowed names `name`, `sku`, `price`, `description`; strings or null; price a JSON integer). Rule checks (lengths, range, required) live in the Application validator, so a valid-typed request gets all field messages at once (FR-012). A structurally wrong request (sent outside the form) is answered with its structural errors only. The form always sends structurally valid requests, so FR-012 (every invalid field at once, in the form) holds in full. Direct requests are still rejected with field-level reasons (FR-018, US2 #8, #10).
 
 ## R5. Where validation runs: client and server, or server only
 
@@ -79,7 +79,7 @@ The user's decision: authentication belongs to **014-admin-sign-in**, which is b
 ## R10. Measuring coverage (P3)
 
 The project has no coverage threshold yet. `coverlet.collector` writes Cobertura files per backend test project, but nothing merges them or fails below 80%, and Vitest has no coverage provider installed. This is project-wide, not specific to this feature, but this is the first feature to be built, so it needs a decision before `/sdd-verify`:
-- Frontend: `@vitest/coverage-v8` (npm dev) with `coverage.thresholds.lines: 80` in `vitest.config.ts`.
-- Backend: `dotnet-reportgenerator-globaltool` (local tool) merges the Cobertura files and fails below 80% line coverage (setting `minimumCoverageThresholds:lineCoverage=80`; check the exact setting name when it is added).
+- Frontend: `@vitest/coverage-v8` (npm dev, same version as `vitest`), run by a separate `test:coverage` script (`vitest run --coverage`). `coverage.include` lists the production sources, so files no test loads still count, and `thresholds.lines` is 80.01, because P3 requires *more than* 80%. Coverage is not enabled in the config, so single-file TDD runs are not failed by the global threshold.
+- Backend: coverlet writes one Cobertura file per test project into a results folder that is cleared before each run. `dotnet-reportgenerator-globaltool` (local tool) merges them, filtered to the four production assemblies minus generated migrations, and fails at or below 80% (`minimumCoverageThresholds:lineCoverage=80.01`; confirm the argument with `-help` when it is added). Exact commands: plan, "Coverage commands".
 
-Both require `/sdd-architecture`. They are listed in the plan.
+Both are allowed since architecture v1.1.0 (`@vitest/coverage-v8` as npm dev, `dotnet-reportgenerator-globaltool` as a local tool).

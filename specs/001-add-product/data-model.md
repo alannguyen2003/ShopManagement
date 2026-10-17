@@ -50,4 +50,4 @@ None in this feature.
 
 ## Migration
 
-`Infrastructure/Persistence/Migrations/<timestamp>_AddProducts.cs`, generated with `dotnet ef migrations add AddProducts --project src/ShopManagement.Infrastructure --startup-project src/ShopManagement.Api --output-dir Persistence/Migrations`. It creates the `Products` table with the two unique indexes. `DatabaseMigrationHostedService` (registered by `AddInfrastructure()`) applies pending migrations at startup with `MigrateAsync`.
+`Infrastructure/Persistence/Migrations/<timestamp>_AddProducts.cs`, generated with `dotnet ef migrations add AddProducts --project src/ShopManagement.Infrastructure --startup-project src/ShopManagement.Api --output-dir Persistence/Migrations`. It creates the `Products` table with the two unique indexes. `DatabaseMigrator.MigrateDatabaseAsync()`, called from `Program.cs` before `RunAsync()`, applies pending migrations at startup with `MigrateAsync`.

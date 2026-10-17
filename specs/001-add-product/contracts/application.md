@@ -49,8 +49,8 @@ public sealed record CreateProductResult(ProductDto Product, bool IsReplay);
 
 public sealed class CreateProductValidator
 {
-    /// Format rules only (required, lengths, range). Empty map = valid. Also reports whether the SKU
-    /// passed its own format rules, so the handler knows whether to check uniqueness.
+    /// Format rules only (required, lengths, range). Empty map = valid. The SKU passed its format
+    /// rules when the map has no "sku" key; the handler uses that to decide whether to check uniqueness.
     public IDictionary<string, List<string>> Validate(CreateProductCommand command);
 }
 
@@ -64,7 +64,7 @@ public sealed class CreateProductHandler(IProductRepository products, CreateProd
 
 Handler flow (FR-012, FR-014):
 1. `FindByCreateRequestIdAsync`. If a product is found, return it (`IsReplay = true`) without validating the body (research R3).
-2. `validator.Validate`. If the SKU passed its format rules, `SkuExistsAsync`; a match adds `sku: SKU is already used…` to the same map.
+2. `validator.Validate`. If the SKU passed its format rules (no `sku` key), `SkuExistsAsync`. On a match, `FindByCreateRequestIdAsync` again: if a twin with the same key committed meanwhile, return it as a replay. Otherwise add `sku: SKU is already used…` to the same map.
 3. If the map is not empty, return `Error(ValidationCode, "One or more fields are invalid.", map)` with every field at once.
 4. `Product.Create(…, timeProvider.GetUtcNow().UtcDateTime, key)`, then `AddAsync`.
    - `DuplicateCreateRequest` → re-read the product and return the replay.
@@ -105,10 +105,12 @@ public static class ProductsEndpoints
 ```csharp
 public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration);
 // registers AppDbContext (UseSqlite(ConnectionStrings:Default); throws InvalidOperationException naming the
-// setting if missing), IProductRepository, TimeProvider.System, and DatabaseMigrationHostedService.
+// setting if missing), IProductRepository and TimeProvider.System.
 
-// Persistence/DatabaseMigrationHostedService.cs (internal) — IHostedService whose StartAsync runs
-// Database.MigrateAsync() before Kestrel starts listening. Api calls nothing but AddInfrastructure().
+// Persistence/DatabaseMigrator.cs — public static class.
+public static Task MigrateDatabaseAsync(this IServiceProvider services, CancellationToken ct = default);
+// Creates a scope, resolves AppDbContext and runs Database.MigrateAsync(). Program.cs calls it once after
+// Build() and before RunAsync(). Api calls only AddInfrastructure() and this; it never sees AppDbContext.
 ```
 
 `ProductRepository.AddAsync` catches only a `DbUpdateException` whose inner `SqliteException` has `SqliteExtendedErrorCode == 2067` (SQLITE_CONSTRAINT_UNIQUE). It detaches the entity, then checks whether the key is stored (→ `DuplicateCreateRequest`) or the normalized SKU is stored (→ `DuplicateSku`). If neither, it rethrows. `SqliteException` comes from `Microsoft.Data.Sqlite`, which arrives through the allowed `Microsoft.EntityFrameworkCore.Sqlite`, so no PackageReference is added.

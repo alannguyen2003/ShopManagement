@@ -46,3 +46,7 @@
 - Plans: React Router navigation state lives in history.state and survives reload; "no state on reload → redirect" is wrong.
 - Plans: SQLite returns DateTime with Kind=Unspecified; check UTC round trip in replies built from read-back data (replay paths).
 - Plans: SqliteErrorCode 19 matches any constraint; unique violations are extended code 2067.
+- Plans: Infrastructure has no `Microsoft.Extensions.Hosting.Abstractions`; `IHostedService` / `AddHostedService` there needs an allowlist change. Check `obj/project.assets.json` before accepting "comes transitively" claims. (001 chose a `MigrateDatabaseAsync()` extension called from `Program.cs`.)
+- Plans: a "replay check first, then uniqueness check" handler has a window where a same-key twin commits in between; on a SKU duplicate, re-check the idempotency key before returning the SKU error.
+- Plans (P3): Vitest thresholds apply only with `--coverage` or `enabled`; enabling it in config breaks single-file runs, and without `coverage.include` only loaded files count. Coverlet `TestResults` folders pile up across runs unless cleared before reportgenerator merges them. P3 says "greater than 80%", so a threshold of 80 passes at exactly 80.
+- Plans: when the P9 row counts `catch` blocks, also count frontend catches (hooks mapping fetch failures) and say whether unexpected errors are logged; a bare `oxlint` exits 0 on warnings.

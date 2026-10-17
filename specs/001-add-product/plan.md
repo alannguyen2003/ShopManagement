@@ -6,12 +6,12 @@
 **Revision:** 1
 **Spec revision:** 1
 **Constitution:** 1.0.0
-**Architecture:** 1.0.0
+**Architecture:** 1.1.0
 **Created:** 2026-10-17
 
 ## Summary
 
-The Admin adds a product (name, SKU, price, description) through an add form in the React app. The form posts to `POST /api/products`. A thin Minimal API endpoint reads and checks the JSON structure, and an Application handler validates every field, including SKU uniqueness, and stores the product through EF Core in SQLite, with stock quantity 1, status Draft and the UTC date added. The schema is built **code first**: an EF Core model plus a migration applied at startup. SKU uniqueness (ignoring case and spaces) and "one Save action → one product" are enforced by two unique indexes: `NormalizedSku`, and `CreateRequestId`, filled from an `Idempotency-Key` header. Authentication, the protected layout and the product management page come from 014-admin-sign-in, which is built first. The sign-in prompt over the form comes from 017-session-expiry. Per the user's instruction, all work happens on `main`.
+The Admin adds a product (name, SKU, price, description) through an add form in the React app. The form posts to `POST /api/products`. A thin Minimal API endpoint reads and checks the JSON structure, and an Application handler validates every field, including SKU uniqueness, and stores the product through EF Core in SQLite, with stock quantity 1, status Draft and the UTC date added. The schema is built **code first**: an EF Core model plus a migration applied at startup. SKU uniqueness (ignoring case and spaces) and "one Save action → one product" are enforced by two unique indexes: `NormalizedSku`, and `CreateRequestId`, filled from an `Idempotency-Key` header. Authentication, the protected layout and the product management page come from 014-admin-sign-in, which is built first. The sign-in prompt over the form comes from 017-session-expiry. Work happens on the branch `feat/001-add-product`, as the spec header says.
 
 ## Technical context
 
@@ -20,7 +20,7 @@ The Admin adds a product (name, SKU, price, description) through an add form in 
 | Language / version | C# on .NET 10 (SDK 10.0.113); TypeScript ~6.0 |
 | Main framework | ASP.NET Core Minimal APIs; React 19 + React Router 8, Vite 8 |
 | Storage | SQLite through EF Core 10 (code first, migrations in `Infrastructure/Persistence/Migrations/`) |
-| New libraries | `dotnet-ef` local tool, to generate migrations (R1). `@vitest/coverage-v8` and `dotnet-reportgenerator-globaltool`, to measure P3 coverage (R10). All three need `/sdd-architecture`. No new runtime library. |
+| New libraries | `dotnet-ef` local tool, to generate migrations (R1). `@vitest/coverage-v8` and `dotnet-reportgenerator-globaltool`, to measure P3 coverage (R10). All three are allowed since architecture v1.1.0. No new runtime library. |
 | Test tooling | xUnit + NSubstitute (Domain, Application), `WebApplicationFactory<Program>` with a named shared-cache in-memory SQLite database (Api), Vitest + Testing Library (components), Playwright (e2e) |
 | Target platform | Single-instance web app: Kestrel API + static React SPA, one SQLite file |
 | Performance / scale constraints | NFR-002: 95% of adds confirmed < 1 s with 10,000 products. Both lookups (`NormalizedSku`, `CreateRequestId`) use unique indexes, so cost is O(log n). |
@@ -31,23 +31,23 @@ The Admin adds a product (name, SKU, price, description) through an add form in 
 |-----------|--------|-----------------------|
 | P1. Single administrator | Pass | No user or role concepts. The endpoint relies on the single Admin session from 014. |
 | P2. Test first (TDD) | Pass | Every task starts with a failing test (Test strategy). Each `feat` commit carries its test. The unique-constraint paths are tested directly against the repository, not left to timing. |
-| P3. Coverage > 80% | Pass (once tooling is allowed) | New code is covered by unit, integration and component tests. The project cannot measure the threshold yet (R10). The plan asks for `@vitest/coverage-v8` and `dotnet-reportgenerator-globaltool` so the test command fails below 80%. |
+| P3. Coverage > 80% | Pass | New code is covered by unit, integration and component tests. The project cannot measure the threshold yet (R10), so this feature sets up the gate first ("Coverage commands" under Test strategy), with `@vitest/coverage-v8` and `dotnet-reportgenerator-globaltool` (allowed since architecture v1.1.0). "Run tests" fails unless line coverage is **greater than** 80% (threshold 80.01), for the backend and the frontend separately. Production code only: backend assemblies `Domain`, `Application`, `Infrastructure` and `Api`, minus generated migrations; frontend `src/**/*.{ts,tsx}` minus tests, test setup, `main.tsx` and type declarations. The results folder is cleared before each run, so old reports never inflate the figure. |
 | P4. Password hashing | Pass | No passwords handled in this feature. |
 | P5. Authentication by default | Pass | The product route group calls `.RequireAuthorization()`, and 014 provides the scheme and the fallback policy. Integration tests use 014's real session handling to check for 401 without a session and with a forged one, and that nothing is stored (NFR-003). The frontend routes sit inside 014's protected layout. |
 | P6. Input validation at the boundary | Pass | Api reader: body parsing, allowed field names, JSON types, Idempotency-Key. Application validator: every rule. All access goes through the EF Core LINQ/ORM; no raw SQL. Tests cover each rejected input. |
 | P7. No secrets in code or logs | Pass | The connection string comes from user-secrets or an environment variable, never from `appsettings*.json` (R8). ProblemDetails replies hold only fixed field messages, with no exception text, type names or IDs. A test checks malformed bodies for no stack traces in Development and Production (NFR-006). Request bodies are not logged. |
-| P8. Simplicity first | Pass | No mediator, mapper or validation library. Plain handler and validator classes, the BCL `TimeProvider` instead of a new `IClock`, and an optional field map on the existing `Error` instead of a new error type. The idempotency key is a column, not a new table. Each addition traces to an FR (mapping table). |
-| P9. Clean build, visible errors | Pass | Warnings as errors already on (`Directory.Build.props`); oxlint and `tsc -b` must be clean. There are two `catch` blocks. The reader catches only `JsonException` and turns it into a 400. The repository catches only a UNIQUE-constraint `DbUpdateException` (extended code 2067), and rethrows when neither key matches. Anything else reaches `UseExceptionHandler`, which logs it. |
+| P8. Simplicity first | Pass | No mediator, mapper or validation library. Plain handler and validator classes, the BCL `TimeProvider` instead of a new `IClock`, and an optional field map on the existing `Error` instead of a new error type. The idempotency key is a column, not a new table. Migrations run through a plain `MigrateDatabaseAsync()` extension rather than a hosted service, so Infrastructure needs no hosting package. Each addition traces to an FR (mapping table). |
+| P9. Clean build, visible errors | Pass | Warnings as errors are already on (`Directory.Build.props`), and `tsc -b` must be clean. A bare `oxlint` exits 0 on warnings, so this feature, the first to merge, changes the `lint` script to `oxlint --deny-warnings`. There are three `catch` sites. Backend: the reader catches only `JsonException` and turns it into a 400. The repository catches only a UNIQUE-constraint `DbUpdateException` (extended code 2067), and rethrows when neither key matches. Anything else reaches `UseExceptionHandler`, which logs it. Frontend: `useCreateProduct` turns a rejected fetch or a non-2xx reply into a failure kind. Expected failures (400 with field errors, 401, offline `TypeError`) are shown, not logged. Anything unexpected (5xx, 403, 404, 415, a 400 without field keys, another error) is also logged with `console.error`, with only the status and error name and never the form values (P7). |
 
 ## Architecture check
 
-Against [docs/architecture.md](../../docs/architecture.md) v1.0.0.
+Against [docs/architecture.md](../../docs/architecture.md) v1.1.0.
 
 | Item | Value |
 |------|-------|
 | Backend layers touched | Domain, Application, Infrastructure, Api |
-| Feature folders | `Domain/Products/`, `Application/Products/` (+ `CreateProduct/`), `Infrastructure/Persistence/` (+ `Configurations/`, `Repositories/`, `Migrations/`), `Api/Endpoints/ProductsEndpoints.cs` (+ `Endpoints/Products/` for the request reader), `Api/Contracts/Products/` (response contract), frontend `features/products/` |
-| Layer rules | Respected. Domain has no references (uses only `System.Globalization` and `System.Text`). Application uses only Domain and the BCL `TimeProvider`. Infrastructure implements `IProductRepository` and runs migrations through its own hosted service. Api only reads the body, calls one handler and maps the result, and touches Infrastructure only through `AddInfrastructure()`. The existing `ShopManagement.ArchitectureTests` stay green. |
+| Feature folders | `Domain/Products/`, `Application/Products/` (+ `CreateProduct/`), `Infrastructure/Persistence/` (+ `Configurations/`, `Repositories/`, `Migrations/`), `Api/Endpoints/ProductsEndpoints.cs` (+ `Endpoints/Products/` for the request reader), `Api/Contracts/Products/` (response contract), frontend `features/products/`. `Api/Endpoints/<Feature>/` and `Api/Contracts/<Feature>/` are this plan's Api feature folders, following "feature folders inside each layer". The user chose to keep them as a plan-level choice rather than an architecture convention. |
+| Layer rules | Respected. Domain has no references (uses only `System.Globalization` and `System.Text`). Application uses only Domain and the BCL `TimeProvider`. Infrastructure implements `IProductRepository` and exposes `MigrateDatabaseAsync(this IServiceProvider)`. Api only reads the body, calls one handler and maps the result. It touches Infrastructure only at the composition root: `AddInfrastructure()`, plus one `MigrateDatabaseAsync()` call in `Program.cs` before `RunAsync()`. That is startup wiring, not data access, and Api never sees `AppDbContext` (user decision, 2026-10-17). The existing `ShopManagement.ArchitectureTests` stay green. |
 
 | Package | Layer / scope | Status |
 |---------|---------------|--------|
@@ -58,18 +58,16 @@ Against [docs/architecture.md](../../docs/architecture.md) v1.0.0.
 | `Microsoft.AspNetCore.OpenApi` | Api | allowed (already referenced) |
 | `xunit`, `NSubstitute`, `Microsoft.AspNetCore.Mvc.Testing`, `coverlet.collector` | Tests | allowed (already referenced) |
 | `react`, `react-router`, Vitest, Testing Library, `@playwright/test` | runtime / dev | allowed (already installed) |
-| `dotnet-ef` | tool (local manifest `.config/dotnet-tools.json` at the repo root) | requires /sdd-architecture |
-| `@vitest/coverage-v8` | npm dev | requires /sdd-architecture |
-| `dotnet-reportgenerator-globaltool` | tool (same local manifest) | requires /sdd-architecture |
+| `dotnet-ef` | tool (local manifest `.config/dotnet-tools.json` at the repo root) | allowed (since v1.1.0) |
+| `@vitest/coverage-v8` | npm dev | allowed (since v1.1.0) |
+| `dotnet-reportgenerator-globaltool` | tool (same local manifest) | allowed (since v1.1.0) |
 
-Dependencies requiring /sdd-architecture (before `/sdd-approve plan`):
-- `/sdd-architecture "add dotnet-ef as a local .NET tool (tool, manifest .config/dotnet-tools.json at the repo root) — generate EF Core code-first migrations in Infrastructure/Persistence/Migrations"`
-- `/sdd-architecture "add @vitest/coverage-v8 (npm dev) and dotnet-reportgenerator-globaltool (local tool, same manifest) — enforce constitution P3: frontend vitest coverage threshold 80% lines; backend merge Cobertura from all test projects and fail below 80% lines; update the CLAUDE.md test command"`
+Dependencies requiring /sdd-architecture: none. The three tools this plan needs were added in architecture v1.1.0.
 
 ## Preconditions
 
+- **Release (not build) also waits for 015 and 017.** 017-session-expiry provides FR-015's sign-in prompt over the form. Until 017 is built, `/sdd-verify` records FR-015's prompt part and the second half of US3 #3 as "partly met, waits for 017". Everything else in 001 is verified in full.
 - **014-admin-sign-in's plan is approved, and 013/014 are built.** 014 owns the product management page and its route (014 FR-018, FR-008), the protected layout, the authentication setup and its integration-test helpers. Before `/sdd-tasks`, re-check this plan's "owned by 014" items against 014's approved plan. If file names or routes differ, update this plan through a Draft revision.
-- The two `/sdd-architecture` changes above are done.
 
 ## Design
 
@@ -109,12 +107,13 @@ flowchart LR
   - description: "Description can have at most 2000 characters."
 - **`CreateProductHandler`** (Application), in this order (contracts/application.md):
   1. Replay check by `CreateRequestId`. A match is returned as stored, before any validation (R3).
-  2. The validator, plus `SkuExistsAsync` when the SKU passed its format rules. A duplicate adds "SKU is already used by another product." to the **same** error map, so every invalid field comes back at once.
+  2. The validator, plus `SkuExistsAsync` when the SKU passed its format rules. A duplicate adds "SKU is already used by another product." to the **same** error map, so every invalid field comes back at once. First, though, the handler looks up `CreateRequestId` once more. If a twin request with the same key committed between step 1 and this check, the handler returns that product as a replay instead (FR-014).
   3. `Product.Create(…, timeProvider.GetUtcNow().UtcDateTime, key)`, then `AddAsync`. A unique-index race ends in either the replay or the `sku` error.
 - **`Product`** (Domain): factory with invariants. It sets `StockQuantity = 1`, `Status = Draft` and `NormalizedSku`.
 - **`Error`** (Domain/Common): gains an optional `FieldErrors` map. It stays sealed, and the existing `ResultTests` still pass.
 - **`ProductRepository`** (Infrastructure): EF Core queries on the indexed columns. `AddAsync` catches only `DbUpdateException` whose inner `SqliteException` has `SqliteExtendedErrorCode == 2067` (UNIQUE). It detaches the entity, then checks whether the key is stored (→ `DuplicateCreateRequest`) or the normalized SKU is (→ `DuplicateSku`). If neither, it rethrows.
-- **`AppDbContext`** + **`ProductConfiguration`** (with the UTC `DateTime` converter) + migration `AddProducts` (data-model.md). **`DatabaseMigrationHostedService`**, registered by `AddInfrastructure()`, applies migrations before Kestrel starts listening, so `Program.cs` only adds `MapProductsEndpoints()`.
+- **`AppDbContext`** + **`ProductConfiguration`** (with the UTC `DateTime` converter) + migration `AddProducts` (data-model.md).
+- **`DatabaseMigrator.MigrateDatabaseAsync(this IServiceProvider)`** (Infrastructure, public extension) creates a scope, resolves `AppDbContext` and runs `Database.MigrateAsync()`. `Program.cs` calls it once after `Build()` and before `RunAsync()`, so migrations are applied before Kestrel listens. `Program.cs` also adds `MapProductsEndpoints()`. No hosting package is needed.
 
 **Frontend**
 - **Routes** (`app/router.tsx`): `products/new` → `AddProductPage` and `products/added` → `ProductAddedPage`, nested under the product management route and protected layout from 014. The paths shown assume 014 uses `/products`; re-check against 014's plan. All moves are client-side navigations that push history entries, so there are no reloads and Back works (NFR-004).
@@ -128,7 +127,8 @@ flowchart LR
 - **`useCreateProduct`**: creates the idempotency key once per mount with `crypto.randomUUID()` and keeps it for every retry of that form (R3). It ignores `save` while a request is in flight, and Save is also `disabled` (FR-014, BR-028). Failures:
   - 400 with known field keys → field errors.
   - 401 → `session-ended`: "Your session has ended. The product was not saved." The form stays mounted, and 017's prompt is triggered by the refused operation (FR-015).
-  - Anything else (network `TypeError`, 5xx, 403, 404, 415, a 400 without known field keys) → `not-saved`: "The product was not saved. Check your connection and try again."
+  - Anything else (network `TypeError`, 5xx, 403, 404, 415, a 400 without known field keys) → `not-saved`: "The product was not saved. Check your connection and try again." Everything except the offline `TypeError` is also logged with `console.error` (status and error name only; P9, P7).
+  - A 401 must not unmount the form: `api-client` and 014's protected layout must not redirect on a 401 from this save (re-check against 014/017).
   - Values live only in React state, never in local or session storage (BR-049).
 - **`ProductAddedPage`**: reads the saved product from the navigation state and shows name, SKU, `formatVnd(price)`, description (or "No description"), stock quantity 1 and status Draft (FR-013). It offers "Add another product" (→ `products/new`, a fresh form and key) and "Back to products".
   - React Router keeps the navigation state in `history.state`, so a reload shows the same confirmation again. Nothing is resubmitted, and the values shown are already stored.
@@ -182,33 +182,35 @@ src/backend/
 │       └── CreateProduct/CreateProductCommand.cs, CreateProductResult.cs,
 │           CreateProductValidator.cs, CreateProductHandler.cs                     (new)
 ├── src/ShopManagement.Infrastructure/
-│   ├── DependencyInjection.cs                             (modify: DbContext, repository, TimeProvider, hosted service)
+│   ├── DependencyInjection.cs                             (modify: DbContext, repository, TimeProvider)
 │   └── Persistence/
-│       ├── AppDbContext.cs, DesignTimeDbContextFactory.cs, DatabaseMigrationHostedService.cs   (new)
+│       ├── AppDbContext.cs, DesignTimeDbContextFactory.cs, DatabaseMigrator.cs   (new)
 │       ├── Configurations/ProductConfiguration.cs        (new)
 │       ├── Repositories/ProductRepository.cs             (new)
 │       └── Migrations/<timestamp>_AddProducts.cs (+ .Designer.cs, AppDbContextModelSnapshot.cs)  (generated)
 ├── src/ShopManagement.Api/
-│   ├── Program.cs                                         (modify: MapProductsEndpoints)
+│   ├── Program.cs                                         (modify: MigrateDatabaseAsync, MapProductsEndpoints)
 │   ├── ShopManagement.Api.csproj                          (modify: UserSecretsId, if 014 has not added it)
 │   ├── Endpoints/ProductsEndpoints.cs, ProblemMapping.cs  (new)
-│   ├── Endpoints/Products/CreateProductRequestReader.cs   (new)
+│   ├── Endpoints/Products/CreateProductRequestReader.cs   (new; Api feature folder, see Architecture check)
 │   └── Contracts/Products/ProductResponse.cs              (new)
 └── tests/
     ├── ShopManagement.Domain.Tests/Common/ResultTests.cs  (modify: FieldErrors)
     ├── ShopManagement.Domain.Tests/Products/ProductTests.cs                    (new)
-    ├── ShopManagement.Application.Tests/DependencyInjectionTests.cs           (modify if needed: new registrations)
+    ├── ShopManagement.Application.Tests/DependencyInjectionTests.cs           (modify: CreateProductValidator and
+    │                                                                            CreateProductHandler resolve)
     ├── ShopManagement.Application.Tests/Products/CreateProduct/
     │   CreateProductValidatorTests.cs, CreateProductHandlerTests.cs            (new)
     └── ShopManagement.Api.IntegrationTests/
         ├── <014's test factory and sign-in helper>        (modify, owned by 014: named shared-cache
         │                                                   in-memory SQLite, ConnectionStrings:Default)
         ├── HealthEndpointsTests.cs                        (modify: use the shared test factory)
+        ├── InfrastructureStartupTests.cs                  (new: missing connection string, AddProducts migration applied)
         └── Products/CreateProductEndpointTests.cs, ProductRepositoryTests.cs,
             CreateProductPerformanceTests.cs               (new)
-.config/dotnet-tools.json                                  (new, after /sdd-architecture: dotnet-ef, reportgenerator)
-.gitignore                                                 (modify: *.db, *.db-shm, *.db-wal)
-CLAUDE.md                                                  (modify, per /sdd-architecture: coverage step in "Run tests")
+.config/dotnet-tools.json                                  (new: dotnet-ef, dotnet-reportgenerator-globaltool)
+.gitignore                                                 (modify: *.db, *.db-shm, *.db-wal, TestResults/)
+CLAUDE.md                                                  (modify: "Run tests" = coverage commands below; perf command)
 
 src/frontend/
 ├── src/app/router.tsx                                     (modify: products/new, products/added)
@@ -220,7 +222,9 @@ src/frontend/
 │   ├── components/<014's product management page>        (modify, owned by 014: "Add product" link)
 │   └── __tests__/AddProductForm.test.tsx, PriceInput.test.tsx, useCreateProduct.test.tsx,
 │       ProductAddedPage.test.tsx                          (new)
-├── vitest.config.ts                                       (modify, after /sdd-architecture: coverage thresholds)
+├── package.json                                           (modify: @vitest/coverage-v8 at vitest's version; scripts
+│                                                            "lint": "oxlint --deny-warnings", "test:coverage": "vitest run --coverage")
+├── vitest.config.ts                                       (modify: coverage provider, include/exclude, thresholds.lines 80.01)
 └── tests/e2e/add-product.spec.ts                          (new)
 ```
 
@@ -260,10 +264,14 @@ Test types used below:
 | US2 #10 | integration | `price: -1`, `1500.5`, `"abc"`, `1e30` → 400 `errors.price`, 0 rows |
 | US3 #1 | component + e2e | fetch rejects (offline) → form kept, "not saved" message; e2e uses `context.setOffline(true)` |
 | US3 #2 | component + e2e | Retry after reconnect → one product, confirmation shown, same key reused |
-| US3 #3 | component (now) + e2e (once 017 exists) | 401 → form stays mounted with values and "session has ended … not saved". The prompt and sign-in-then-save flow is e2e once 017-session-expiry is built. |
+| US3 #3 | component (now) + e2e (once 017 exists) | 401 → form stays mounted with values and "session has ended … not saved", with no navigation. The prompt and sign-in-then-save flow is e2e once 017-session-expiry is built. Until then `/sdd-verify` reports it as "partly met, waits for 017". |
 | US3 #4 | component | No `localStorage`/`sessionStorage` writes during fill, failure or retry (spied) |
-| US3 #5 | integration + component | POST stored → same key again (also with an edited or invalid body) → 200 with the stored product, 1 row, no SKU error; hook test: first call fails after the server stored it, the retry gets 200 and shows the confirmation |
+| US3 #5 | integration + component | POST stored → same key again (also with an edited or rule-invalid body, such as an empty name) → 200 with the stored product, 1 row, no SKU error; hook test: first call fails after the server stored it, the retry gets 200 and shows the confirmation |
 | FR-011 | unit | Handler stores `CreatedAtUtc` equal to the mocked `TimeProvider` time; integration round trip returns `createdAt` with "Z" on 201 and on the 200 replay |
+| Same-key twin commits between replay check and SKU check | unit | NSubstitute repository: the first key lookup returns null, `SkuExistsAsync` returns true, and the second key lookup returns the product → replay result, no `sku` error |
+| Replay with a structurally invalid body | integration | Key already stored, body with an unknown field or `price: "abc"` → 400 from the reader. Structure is checked before the replay, by design (R4). |
+| Startup configuration | integration | Factory with `ConnectionStrings:Default` removed → host start throws `InvalidOperationException` naming the setting, without any value. Normal start → `__EFMigrationsHistory` contains `AddProducts`. |
+| Logging of unexpected failures | component | 500 → `console.error` called once with status only, no form values; 400 with field errors, 401 and offline → not called |
 | Repository unique paths | integration (direct) | Resolve `IProductRepository` from the factory and `AddAsync` a product whose normalized SKU exists → `DuplicateSku`; whose key exists → `DuplicateCreateRequest` |
 | Unclassified failures | component | 403, 404, 415, 500 and a 400 without field keys → "not saved" message, values kept |
 | Edge: trim name/SKU | unit | Stored trimmed |
@@ -280,30 +288,48 @@ Test types used below:
 | NFR-005 / NFR-006 | integration | Empty body, malformed JSON, non-object body, duplicate property, wrong type, non-JSON Content-Type → 400/415 ProblemDetails without stack trace, exception text or type names, in both Development and Production environments |
 | Architecture rules | existing ArchitectureTests | Stay green with the new types |
 
+### Coverage commands
+
+- **Run tests** (replaces the CLAUDE.md line; the folder is cleared first, so Cobertura files from earlier runs are never merged):
+  ```
+  node -e "require('fs').rmSync('src/backend/TestResults',{recursive:true,force:true})"
+  dotnet test src/backend --filter "Category!=Performance" --collect:"XPlat Code Coverage" --results-directory src/backend/TestResults
+  dotnet tool run reportgenerator -reports:"src/backend/TestResults/**/coverage.cobertura.xml" -targetdir:src/backend/TestResults/report -reporttypes:TextSummary -assemblyfilters:"+ShopManagement.Domain;+ShopManagement.Application;+ShopManagement.Infrastructure;+ShopManagement.Api" -classfilters:"-ShopManagement.Infrastructure.Persistence.Migrations.*" "-minimumCoverageThresholds:lineCoverage=80.01"
+  npm --prefix src/frontend run test:coverage
+  ```
+  The four steps are joined with `&&`. When the coverage setup is added (implementation step 1), check the reportgenerator threshold argument with `dotnet tool run reportgenerator -help`. If it does not take a decimal, use `81` and record that in the task.
+- **Frontend** `vitest.config.ts`: `coverage: { provider: 'v8', include: ['src/**/*.{ts,tsx}'], exclude: ['src/**/__tests__/**', 'src/**/*.test.{ts,tsx}', 'src/test/**', 'src/main.tsx', 'src/**/*.d.ts'], thresholds: { lines: 80.01 } }`. `enabled` is not set, so the single-test command (`npm --prefix src/frontend test -- <file>`) runs without the global threshold.
+- **Performance** (run by `/sdd-verify`, not by "Run tests"): `dotnet test src/backend --filter "Category=Performance"`.
+
 e2e scenarios (`/sdd-verify` → `e2e-tester`): US1 #1, #2, #7, US2 #9, US3 #1, #2, #3 (once 017 exists), Back/Cancel from a filled form, Back from confirmation, NFR-002 timing, NFR-004. They need 013 (Admin account) and 014 (sign-in) built.
 
 ## Risks and mitigations
 
-- **001 depends on 013 and 014 being built first**: 014's spec is still Draft with no plan. → Precondition above. Release also waits for 015, as 014's spec requires.
+- **001 depends on 013 and 014 being built first**: 014's spec is still Draft with no plan. → Precondition above. Release also waits for 015, as 014's spec requires, and for 017 (FR-015's prompt).
 - **Sign-in prompt over the form (US3 #3) belongs to 017** → 001 only guarantees the form stays mounted with its values on 401. The full scenario is checked when 017 is built. Recorded here so 017's plan picks it up.
-- **Code-first tooling and coverage are not on the allowlist** → The two `/sdd-architecture` commands above must run before plan approval.
-- **Work on `main` vs the code gate**: `.claude/hooks/sdd-guard-edit.js` allows product-code edits only on a `feat/NNN-slug` or `fix/NNN-slug` branch, and the spec header names `feat/001-add-product`. On `main`, `/sdd-build` will be blocked. → The user decides how to handle this before `/sdd-build`. Claude will not work around the hook.
+- **A global 401 redirect would lose the form values** → If 014's `api-client` or protected layout redirects to the sign-in page on any 401, the form unmounts and FR-015 fails. Before `/sdd-tasks`, re-check against 014's and 017's plans that a 401 from a save leaves the page mounted. A component test covers 001's side.
+- **Two "session ended" messages** → 017 FR-008 also tells the Admin the session has ended. Re-check against 017's plan, and drop 001's own wording if 017's prompt already says it.
 - **Edited retry after a lost response** shows the stored values, not the edited ones (R3). → The confirmation always shows the saved values, as FR-013 requires. If the user wants a different behavior, it goes through `/sdd-amend spec`.
 - **Caret jumps in the auto-grouped price field** → Caret position is restored by digit index, with component tests for typing and pasting mid-number.
 - **Connection string not in committed config makes first run fail** → The startup error names `ConnectionStrings:Default`, and the implementation notes give the `dotnet user-secrets set` command.
 
 ## Implementation notes
 
-1. Prerequisites: the preconditions above, then `dotnet new tool-manifest` at the repo root and `dotnet tool install dotnet-ef`.
+1. Prerequisites and coverage gate first:
+   - Check the preconditions above.
+   - At the repo root: `dotnet new tool-manifest`, `dotnet tool install dotnet-ef` and `dotnet tool install dotnet-reportgenerator-globaltool`.
+   - `cd src/frontend && npm install -D @vitest/coverage-v8@<installed vitest version>`.
+   - Set up the coverage config, the `test:coverage` and `lint` scripts, `.gitignore` and the CLAUDE.md commands.
+   - Run a baseline on the existing scaffold, so any shortfall that predates this feature is found before feature work starts.
 2. Domain: `Error.FieldErrors` (with `ResultTests`), `ProductRules`, `ProductStatus`, `Product` with tests.
 3. Application: validator tests → validator; handler tests (NSubstitute repository, `TimeProvider`; order: replay → merged errors → add) → handler; DI registration.
-4. Infrastructure: `AppDbContext`, `ProductConfiguration`, `ProductRepository`, `DesignTimeDbContextFactory` (`Data Source=:memory:`), `DatabaseMigrationHostedService`, then generate the `AddProducts` migration. `AddInfrastructure` throws if `ConnectionStrings:Default` is missing.
-5. Api: extend 014's test factory (shared-cache in-memory SQLite) and move `HealthEndpointsTests` onto it. Then endpoint and repository tests → reader, `ProblemMapping`, endpoint, `Program.cs`. Dev setup: `dotnet user-secrets set "ConnectionStrings:Default" "Data Source=shopmanagement.db" --project src/backend/src/ShopManagement.Api`.
+4. Infrastructure: `AppDbContext`, `ProductConfiguration`, `ProductRepository`, `DesignTimeDbContextFactory` (`Data Source=:memory:`), `DatabaseMigrator`, then generate the `AddProducts` migration. `AddInfrastructure` throws if `ConnectionStrings:Default` is missing.
+5. Api: extend 014's test factory (shared-cache in-memory SQLite) and move `HealthEndpointsTests` onto it. Then startup, endpoint and repository tests → reader, `ProblemMapping`, endpoint, `Program.cs` (`MigrateDatabaseAsync`, `MapProductsEndpoints`). Dev setup: `dotnet user-secrets set "ConnectionStrings:Default" "Data Source=shopmanagement.db" --project src/backend/src/ShopManagement.Api`.
 6. Frontend: `vnd.ts` → `PriceInput` → `api.ts` / `useCreateProduct` → form, pages, routes, "Add product" link.
-7. e2e spec. Coverage thresholds go into the test command.
+7. e2e spec, then the full "Run tests" with coverage.
 
 ## Revision history
 
 | Rev | Date | Spec rev | Change |
 |-----|------|----------|--------|
-| 1 | 2026-10-17 | 1 | Initial version |
+| 1 | 2026-10-17 | 1 | Initial version. Before approval: updated to architecture v1.1.0 (dotnet-ef, reportgenerator and coverage-v8 now allowed), and work moved to `feat/001-add-product`. Review fixes: migrations through a `MigrateDatabaseAsync()` extension (no hosting package); same-key race re-checks the key before the SKU error; exact coverage commands; 017 as a release precondition; P9 frontend logging and `oxlint --deny-warnings`. |

@@ -81,16 +81,18 @@ components:
     CreateProductRequest:
       type: object
       additionalProperties: false
-      required: [name, sku, price]
+      description: >-
+        name, sku and price are required by the rules, but a missing or null value is answered with that
+        field's 400 message (not a generic schema error), so the schema lists them as optional and nullable.
       properties:
         name:
-          type: string
-          description: Trimmed; 1–200 characters (text elements).
+          type: [string, 'null']
+          description: Required. Trimmed; 1–200 characters (text elements).
         sku:
-          type: string
-          description: Trimmed; 1–50 characters; unique ignoring case and leading/trailing spaces.
+          type: [string, 'null']
+          description: Required. Trimmed; 1–50 characters; unique ignoring case and leading/trailing spaces.
         price:
-          type: integer
+          type: [integer, 'null']
           minimum: 0
           maximum: 1000000000
           description: Whole Vietnamese dong, no separators.
