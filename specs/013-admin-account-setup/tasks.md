@@ -50,7 +50,7 @@ Application contracts
 
 Infrastructure (tested from IntegrationTests, as there is no Infrastructure test project)
 
-- [ ] T015 Write tests for `Pbkdf2PasswordHasher` — IntegrationTests/AdminAccounts/Pbkdf2PasswordHasherTests.cs:
+- [x] T015 Write tests for `Pbkdf2PasswordHasher` — IntegrationTests/AdminAccounts/Pbkdf2PasswordHasherTests.cs:
   - The result has algorithm `PBKDF2-HMAC-SHA256`, a 16-byte salt, 600,000 iterations and a 32-byte hash (NFR-001).
   - `Rfc2898DeriveBytes.Pbkdf2` over the UTF-8 bytes, with the stored salt and iterations and SHA-256, recomputes the stored hash (P4).
   - 10 hashes of the same password give 10 distinct salts and 10 distinct hashes (NFR-002).
