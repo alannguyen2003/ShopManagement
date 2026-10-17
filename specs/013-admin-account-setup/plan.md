@@ -2,9 +2,8 @@
 
 **Feature:** 013-admin-account-setup
 **Spec:** [spec.md](spec.md)
-**Status:** Approved
-**Approved:** 2026-10-17
-**Revision:** 1
+**Status:** Draft
+**Revision:** 2
 **Spec revision:** 1
 **Constitution:** 1.0.0
 **Architecture:** 1.1.0
@@ -46,9 +45,9 @@ This feature also creates the project's persistence base (`AppDbContext`, the fi
 | P3. Coverage > 80% | Pass | This feature adds the backend coverage gate (R9) to the "Run tests" command, so the backend threshold is enforced from now on. Generated migrations and the design-time factory are excluded. The refusal branch of `Program.cs` runs only in child processes, so it is not counted; the rest of the new code is covered in-process. The frontend is not changed. Its gate comes with 014, the first feature that changes the frontend. |
 | P4. Password hashing | Pass | `Pbkdf2PasswordHasher` uses the static `Rfc2898DeriveBytes.Pbkdf2` with HMAC-SHA256, a 16-byte salt from `RandomNumberGenerator` per hash, and 600,000 iterations. The algorithm, salt and iteration count are stored with the hash (R3). Tests check the stored format, recompute the hash, and check that 10 hashes of the same password all differ (NFR-002). The constant-time comparison belongs to the password check in 014 (spec "Out of scope"); this feature never compares passwords. |
 | P5. Authentication by default | Pass | No endpoint is added. The anonymous health check is 014's to close (spec "Out of scope"). |
-| P6. Input validation at the boundary | Pass | The setup values and the connection string are external input. The validator, and the connection-string check in `DatabaseMigrator`, validate them before any business logic uses them, and a problem refuses the start. All database access goes through EF Core; there is no raw SQL in production code. |
+| P6. Input validation at the boundary | Pass | The setup values and the connection string are external input. The validator, and the connection-string check in `DatabaseMigrator`, validate them before any business logic uses them, and a problem refuses the start. All database access goes through EF Core, including reads of damaged rows (through the keyless `AdminAccountRow`, R3); there is no raw SQL in production code. |
 | P7. No secrets in code or logs | Pass | The setup values come only from environment variables or user secrets (R2). The connection string comes only from configuration that is not committed (R6), and a test checks that no committed `appsettings*.json` holds `AdminSetup` or `ConnectionStrings`. Log messages are fixed texts with setting names and rules only (contracts/startup.md). EF Core command and update logging is turned off, so parameter facets never reach the log, and sensitive-data logging is never on (R7). `SetUpAdminAccountCommand` cannot print its values (R2). Test values are generated at runtime, so no test password is committed (R8). |
-| P8. Simplicity first | Pass | No new package, project, mediator or options library. There is one handler, one validator and three small Application interfaces, each with an FR behind it (mapping table). `Error` gains one optional field instead of a new error type. `TimeProvider` (BCL) serves instead of a new `IClock`. The startup step sits in `Program.cs` instead of a hosted service (R1). `AdminAccountRecord` exists only because FR-014 needs damaged rows to stay readable (R3). |
+| P8. Simplicity first | Pass | No new package, project, mediator or options library. There is one handler, one validator and three small Application interfaces, each with an FR behind it (mapping table). `Error` gains one optional field instead of a new error type. `TimeProvider` (BCL) serves instead of a new `IClock`. The startup step sits in `Program.cs` instead of a hosted service (R1). The persistence types `AdminAccountRecord` (write model and schema) and `AdminAccountRow` (keyless read model) exist only because FR-014 needs damaged rows to stay readable. EF Core throws on a NULL in an `IsRequired()` column, so reading needs a type whose columns are not required (R3). |
 | P9. Clean build, visible errors | Pass | Warnings as errors are already on. Four narrow `catch` blocks:<br>• The repository catches only the primary-key `DbUpdateException` (extended code 1555) and rethrows anything else.<br>• `DatabaseMigrator` catches only the `OperationCanceledException` of its own lock timeout.<br>• `AdminCredentialRules` catches only the `ArgumentException` of normalization.<br>• `Program.cs` catches any other exception of the startup step, logs it at `Critical` with the exception, and exits with code 1.<br>Each one returns a refusal or rethrows; none hides an error. |
 
 ## Architecture check
@@ -95,7 +94,7 @@ flowchart TD
   H --> PH[IPasswordHasher<br>Pbkdf2PasswordHasher]
   H --> A[AdminAccount + StoredPassword<br>Domain]
   M --> DB[(SQLite<br>AdminAccounts)]
-  R -->|AdminAccountRecord| DB
+  R -->|writes AdminAccountRecord<br>reads AdminAccountRow| DB
   H -->|Result| P
   P -->|Success| RUN[app.RunAsync: listen]
   P -->|Failure / exception| EXIT[log Critical, dispose, exit 1]
@@ -119,12 +118,13 @@ flowchart TD
 - `DependencyInjection.AddApplication()` registers the validator and the handler (scoped).
 
 **Infrastructure**
-- `Persistence/AppDbContext.cs`, `Persistence/AdminAccountRecord.cs`, and `Configurations/AdminAccountRecordConfiguration.cs`. The configuration sets NOT NULL columns and the CHECK constraint (data-model.md).
+- `Persistence/AppDbContext.cs`, `Persistence/AdminAccountRecord.cs`, and `Configurations/AdminAccountRecordConfiguration.cs`. The record is the write model with non-nullable properties. The configuration sets NOT NULL columns and the CHECK constraint (data-model.md).
+- `Persistence/AdminAccountRow.cs` and `Configurations/AdminAccountRowConfiguration.cs`: a keyless read model on the same table (`HasNoKey()`, `ToView("AdminAccounts")`) with nullable, not-required properties. `ToView` keeps it out of migrations (R3). `AppDbContext` exposes it as `AdminAccountRows`.
 - `Migrations/<timestamp>_AddAdminAccounts.cs`.
 - `Persistence/DesignTimeDbContextFactory.cs` lets `dotnet ef migrations add` run (`Data Source=:memory:`, no secret).
 - `Persistence/DatabaseMigrator.cs` checks the connection string, then runs `Database.MigrateAsync()` with the lock timeout (R6).
 - `Persistence/Repositories/AdminAccountRepository.cs`:
-  - `ListAsync` reads without tracking and converts records with `AdminAccount.Restore`. A damaged password becomes an unusable `StoredPassword`; a missing name gives `UnreadableStoredData` (R3).
+  - `ListAsync` reads `AdminAccountRows` (keyless, so never tracked) and converts each row with `AdminAccount.Restore`. A damaged password becomes an unusable `StoredPassword`; a missing name gives `UnreadableStoredData` (R3).
   - `AddAsync` handles the primary-key race (R4).
 - `Security/Pbkdf2PasswordHasher.cs` (R3).
 - `DependencyInjection.AddInfrastructure()` registers all of these, the DbContext (connection string read when the context is resolved) and `TimeProvider.System`.
@@ -159,7 +159,7 @@ flowchart TD
 | FR-011 | `SetUpAdminAccountOutcome.InitialPasswordStillPresent` → `Program.cs` warning | An empty value gives no warning |
 | FR-012 | One INSERT in one `SaveChangesAsync` (a SQLite transaction); hashing happens before the insert; the migration lock timeout | |
 | FR-013 | `SetUpAdminAccountOutcome.CreatedAtUtc` (`TimeProvider`) → `Program.cs` information log | No name, password or hash |
-| FR-014 | Handler steps 2–4 (`UnreadableStoredData`, `MultipleAdminAccounts`, `UnusableStoredPassword`); `AdminAccountRecord` keeps damaged rows readable; `Program.cs` exception catch | 019 hook A comes before the unusable-password refusal |
+| FR-014 | Handler steps 2–4 (`UnreadableStoredData`, `MultipleAdminAccounts`, `UnusableStoredPassword`); `AdminAccountRow` keeps damaged rows readable; `Program.cs` exception catch | 019 hook A comes before the unusable-password refusal |
 | FR-015 | `AdminCredentialRules` (NFC, `EnumerateRunes`) | Shared with 014, 018, 019 |
 | FR-016 | `DatabaseMigrator.MigrateAsync` as handler step 1 | Creates the file if missing |
 | FR-017 | `Program.cs`: on refusal, log, `DisposeAsync` (flush), `return 1`, so `RunAsync` is never reached. The lock timeout prevents a hang. | |
@@ -190,9 +190,10 @@ src/backend/
 │           SetUpAdminAccountStatus.cs, AdminSetupErrors.cs     (new)
 ├── src/ShopManagement.Infrastructure/
 │   ├── DependencyInjection.cs                                   (modify: DbContext, services, TimeProvider)
-│   ├── Persistence/AppDbContext.cs, AdminAccountRecord.cs,
+│   ├── Persistence/AppDbContext.cs, AdminAccountRecord.cs, AdminAccountRow.cs,
 │   │   DesignTimeDbContextFactory.cs, DatabaseMigrator.cs       (new)
-│   ├── Persistence/Configurations/AdminAccountRecordConfiguration.cs (new)
+│   ├── Persistence/Configurations/AdminAccountRecordConfiguration.cs,
+│   │   AdminAccountRowConfiguration.cs                          (new)
 │   ├── Persistence/Repositories/AdminAccountRepository.cs      (new)
 │   ├── Persistence/Migrations/<timestamp>_AddAdminAccounts.cs (+ .Designer.cs,
 │   │   AppDbContextModelSnapshot.cs)                            (generated)
@@ -232,7 +233,7 @@ CLAUDE.md                                                        (modify: backen
 ## Supporting documents
 
 - [research.md](research.md): decisions R1–R10
-- [data-model.md](data-model.md): `AdminAccount`, `StoredPassword`, the rules, `AdminAccountRecord`, the `AdminAccounts` table
+- [data-model.md](data-model.md): `AdminAccount`, `StoredPassword`, the rules, `AdminAccountRecord`, `AdminAccountRow`, the `AdminAccounts` table
 - [contracts/application.md](contracts/application.md): layer signatures, the handler order and the 019 hooks
 - [contracts/startup.md](contracts/startup.md): settings, exit codes and log messages for the system operator
 
@@ -316,6 +317,7 @@ No scenario needs the UI. There is no e2e test, and `/sdd-verify` does not call 
 - **A developer's own environment variables leaking into tests.** → In-process tests replace the command. Process tests remove the inherited `AdminSetup__*`, `ConnectionStrings__*`, `ASPNETCORE_*`, `DOTNET_ENVIRONMENT` and `Logging__*` variables (R8).
 - **`dotnet run` needs a connection string from now on.** → The development setup commands are in contracts/startup.md and in Implementation notes step 1.
 - **Spec 001's draft plan assumed it would create the persistence base.** That covers `AppDbContext`, `DesignTimeDbContextFactory`, a migration hosted service, `Error.FieldErrors`, the tool manifest, the coverage step and the test factory; it also assumed 014 owns the test factory. → 013 now creates these first, and migrations run in the startup step, not a hosted service. 001's plan (still Draft) must be revised to extend them, and to add the "older structure upgraded, account kept" test once it adds the second migration.
+- **The keyless read model and the migrations.** `AdminAccountRow` is mapped with `ToView`, which EF Core never migrates, so the schema should stay as `AddAdminAccounts` built it. However, EF Core 10's `Migrate()` refuses to run when the model has changes the snapshot does not record. → The repository task runs the schema, repository and migrator tests after adding the read model. If `Migrate()` reports pending model changes, `AddAdminAccounts` is regenerated, which is possible because it has not shipped yet. The generated table must stay identical (the T017 schema tests check it).
 - **019 must change this handler.** → The three hook points are marked in contracts/application.md.
 - **Editing `CLAUDE.md`** (the coverage step) is kit configuration, not product code. → It goes in its own `chore:` commit. If a hook blocks it, the user is asked.
 - **The backend coverage gate may fail at first** if existing code is under 80%. → The gate is added after the feature's tests exist, and `/sdd-verify` records the figure.
@@ -335,7 +337,7 @@ Each step starts with its failing test.
 3. **Application.** Command redaction test → command; validator tests → validator; handler tests → handler. The handler tests use fakes for the migrator, repository and hasher plus `FakeTimeProvider`, and check the call order of contracts/application.md. Then the DI registration test → `AddApplication`.
 4. **Infrastructure.**
    - Hasher tests → `Pbkdf2PasswordHasher`.
-   - Schema tests (CHECK, primary key, NOT NULL columns) and repository tests (`AlreadyExists`, damaged rows) → `AdminAccountRecord`, `AppDbContext`, `AdminAccountRecordConfiguration`, `DesignTimeDbContextFactory`, then `dotnet ef migrations add AddAdminAccounts --project src/ShopManagement.Infrastructure --startup-project src/ShopManagement.Api --output-dir Persistence/Migrations` (from `src/backend`) → `AdminAccountRepository`.
+   - Schema tests (CHECK, primary key, NOT NULL columns) and repository tests (`AlreadyExists`, damaged rows) → `AdminAccountRecord`, `AppDbContext`, `AdminAccountRecordConfiguration`, `DesignTimeDbContextFactory`, then `dotnet ef migrations add AddAdminAccounts --project src/ShopManagement.Infrastructure --startup-project src/ShopManagement.Api --output-dir Persistence/Migrations` (from `src/backend`) → `AdminAccountRow` + `AdminAccountRowConfiguration` (read model for damaged rows) and `AdminAccountRepository`.
    - Migrator tests (missing connection string, empty file, stale lock) → `DatabaseMigrator`.
    - Finally `AddInfrastructure`.
 5. **Api.**
@@ -350,3 +352,4 @@ Each step starts with its failing test.
 | Rev | Date | Spec rev | Change |
 |-----|------|----------|--------|
 | 1 | 2026-10-17 | 1 | Initial version |
+| 2 | 2026-10-17 | 1 | Damaged rows are read through a keyless `AdminAccountRow` (`ToView("AdminAccounts")`, nullable, not required), because EF Core throws on NULL in `IsRequired()` columns even with nullable properties or projections. `AdminAccountRecord` becomes the write model with non-nullable properties. Affected: Design (Infrastructure), P6/P8 rows, FR-014 mapping, file structure, risks, Implementation notes; data-model.md, research.md R3, contracts/application.md. |

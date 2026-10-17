@@ -184,10 +184,12 @@ public sealed class DatabaseMigrator : IDatabaseMigrator               // Infras
     public static readonly TimeSpan DefaultLockTimeout = TimeSpan.FromSeconds(60);
 }
 public sealed class AdminAccountRepository : IAdminAccountRepository;   // Infrastructure/Persistence/Repositories/
-public sealed class AdminAccountRecord;                                 // Infrastructure/Persistence/ (data-model.md)
+public sealed class AdminAccountRecord;                                 // Infrastructure/Persistence/ (data-model.md): write model
+public sealed class AdminAccountRow;                                    // Infrastructure/Persistence/ (data-model.md): keyless read model, ToView("AdminAccounts")
 public sealed class AppDbContext : DbContext                            // Infrastructure/Persistence/
 {
     public DbSet<AdminAccountRecord> AdminAccounts { get; }
+    public DbSet<AdminAccountRow> AdminAccountRows { get; }
 }
 ```
 

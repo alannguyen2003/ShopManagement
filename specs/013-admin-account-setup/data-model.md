@@ -48,7 +48,20 @@ The violations are the enum `CredentialRuleViolation` (Domain/AdminAccounts/Cred
 
 ## Persistence record: `AdminAccountRecord` (Infrastructure/Persistence/AdminAccountRecord.cs)
 
-This is the EF Core entity for the table. It keeps damaged stored data readable (research R3), and the repository converts it to and from the Domain `AdminAccount`.
+This is the EF Core entity for the table, used to write (`AddAsync`) and to create the schema (migration). Its property types match the `IsRequired()` columns. The repository converts a Domain `AdminAccount` into it.
+
+| Property | C# type | Column |
+|----------|---------|--------|
+| `Id` | `int` | `Id` |
+| `SignInName` | `string` | `SignInName` |
+| `PasswordAlgorithm` | `string` | `PasswordAlgorithm` |
+| `PasswordSalt` | `byte[]` | `PasswordSalt` |
+| `PasswordIterations` | `int` | `PasswordIterations` |
+| `PasswordHash` | `byte[]` | `PasswordHash` |
+
+## Persistence read model: `AdminAccountRow` (Infrastructure/Persistence/AdminAccountRow.cs)
+
+A keyless EF Core type that reads the same table and keeps damaged stored data readable (research R3). `ListAsync` reads through it. It is mapped with `ToView("AdminAccounts")` by `Infrastructure/Persistence/Configurations/AdminAccountRowConfiguration.cs`. That way it is never part of a migration and adds nothing to the schema. Its properties are nullable and not required, so EF Core reads a NULL column as `null` instead of throwing. EF Core throws for an `IsRequired()` property even when the C# type is nullable or the query casts it to a nullable type. `AppDbContext` exposes it as `DbSet<AdminAccountRow> AdminAccountRows`.
 
 | Property | C# type | Column |
 |----------|---------|--------|
@@ -59,7 +72,7 @@ This is the EF Core entity for the table. It keeps damaged stored data readable 
 | `PasswordIterations` | `int?` | `PasswordIterations` |
 | `PasswordHash` | `byte[]?` | `PasswordHash` |
 
-Converting a record to a Domain `AdminAccount`:
+Converting a row to a Domain `AdminAccount`:
 - A null password field becomes an empty value or 0, so `IsUsable` is false (the result is `UnusableStoredPassword`, and 019 can still recover).
 - A null `SignInName` makes `ListAsync` return the failed `Result` `UnreadableStoredData`.
 
