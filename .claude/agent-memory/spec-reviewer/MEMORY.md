@@ -53,3 +53,9 @@
 - Plans: Application records that carry secrets need a redacting `ToString`/`PrintMembers` (or be a plain class).
 - Plans: a SC requiring "0 occurrences in committed files" conflicts with literal secret values in test source; generate distinctive values at runtime.
 - Plans: with `WebApplicationFactory`, an entry point that returns before `RunAsync` makes the factory's start succeed on a disposed host; test refused starts only as process tests.
+- Tasks: when tests each need an empty database (or two per test), a database owned by an xUnit class fixture is shared across the class; require per-test databases.
+- Tasks: Application.Tests has only `Microsoft.Extensions.DependencyInjection.Abstractions`; "resolve from a container" needs `BuildServiceProvider` (not allowlisted), so check `ServiceDescriptor`s there and resolve in Api.IntegrationTests.
+- Tasks: a test factory that replaces the startup input with fixed values must expose per-test values when scenarios vary them.
+- Tasks: SQLite `INTEGER PRIMARY KEY` turns an inserted NULL into a new rowid, so "NULL into Id fails" tests are wrong.
+- Tasks: when a startup handler runs inside `WebApplicationFactory`, a parallel-handler race test cannot use the factory (the start already created the row); it needs its own service provider with the app's logging filters.
+- Plans/Tasks: DI builds `AppDbContext` (and its `UseSqlite(connString)` options) before handler code runs, so a "connection string missing" check inside a later service is unreachable if options construction throws.
