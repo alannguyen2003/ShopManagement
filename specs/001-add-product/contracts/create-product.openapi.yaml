@@ -1,0 +1,122 @@
+openapi: 3.1.0
+info:
+  title: Shop Management — Add a product (001)
+  version: 1.0.0
+paths:
+  /api/products:
+    post:
+      operationId: CreateProduct
+      summary: Add a product with stock quantity 1 and status Draft.
+      description: |
+        Requires a signed-in Admin session (authentication from 014-admin-sign-in).
+        The body may contain only the product information fields; any other property is rejected (FR-009).
+        Repeating a request with an Idempotency-Key that is already stored returns the stored product (FR-014),
+        checked before field validation.
+        201 carries no Location header: there is no GET endpoint until 003-product-details.
+        CSRF: requiring application/json (415 otherwise) and the custom Idempotency-Key header forces a CORS
+        preflight for cross-site callers; 014-admin-sign-in may add its own protection (its Open question 4).
+      security:
+        - adminSession: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: UUID created by the add form once per Save action and kept across retries.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+            example:
+              name: Blue Mug
+              sku: MUG-01
+              price: 125000
+              description: Ceramic, 350 ml
+      responses:
+        '201':
+          description: Product stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '200':
+          description: The Idempotency-Key was already used; the product stored by that Save action is returned and nothing new is stored.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductResponse'
+        '400':
+          description: |
+            Invalid input; nothing stored. `errors` maps each field to its messages. Possible causes:
+            missing/invalid Idempotency-Key, empty or malformed JSON, body not a JSON object, duplicate property,
+            unexpected property (key = the property name as sent, at most 20 reported), wrong JSON type,
+            rule violation, or a SKU already used by another product (errors.sku). All field errors of a
+            well-formed request are returned together (FR-012).
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/ValidationProblem'
+              example:
+                title: One or more fields are invalid.
+                status: 400
+                errors:
+                  name: [Name is required.]
+                  sku: [SKU is already used by another product.]
+                  price: [Price must be a whole number of dong from 0 to 1.000.000.000.]
+        '401':
+          description: No signed-in Admin session; nothing stored. Body contains no data or internal details.
+        '415':
+          description: Content-Type is not application/json.
+components:
+  securitySchemes:
+    adminSession:
+      type: apiKey
+      in: cookie
+      name: (defined by 014-admin-sign-in)
+  schemas:
+    CreateProductRequest:
+      type: object
+      additionalProperties: false
+      required: [name, sku, price]
+      properties:
+        name:
+          type: string
+          description: Trimmed; 1–200 characters (text elements).
+        sku:
+          type: string
+          description: Trimmed; 1–50 characters; unique ignoring case and leading/trailing spaces.
+        price:
+          type: integer
+          minimum: 0
+          maximum: 1000000000
+          description: Whole Vietnamese dong, no separators.
+        description:
+          type: [string, 'null']
+          description: Optional; at most 2,000 characters; empty string stored as null.
+    ProductResponse:
+      type: object
+      required: [id, name, sku, price, description, stockQuantity, status, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        sku: { type: string }
+        price: { type: integer }
+        description: { type: [string, 'null'] }
+        stockQuantity: { type: integer, const: 1 }
+        status: { type: string, enum: [Draft] }
+        createdAt: { type: string, format: date-time, description: UTC, always with a Z suffix }
+    ValidationProblem:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }

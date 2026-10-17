@@ -38,3 +38,11 @@
 - Spec: do not raise [NEEDS CLARIFICATION] on something an approved BR settles just because the item's Covers omits it; cite the BR and flag the Covers gap for /sdd-amend requirements.
 - Spec: a duplicate-submit "at most once" rule for anything but adding a product is a new business rule (BR-028 covers add only) and conflicts with BR-035 "both count".
 - Spec: a sub-view (dialog, inline form) must say whether it adds a browser-history entry, or QE-04 Back tests can't be written.
+- Plans: a handler that runs field validation before a DB uniqueness check breaks "every invalid field at once" (FR-012); check the order, also against the replay/idempotency order.
+- Plans: Minimal API body binding (JsonElement or typed) parses JSON before any custom reader; in Development ThrowOnBadRequest=true sends malformed JSON to UseExceptionHandler (500). Check claims of "malformed JSON → 400 with field messages".
+- Plans: race tests on one shared in-memory SqliteConnection don't exercise unique-index races; require a named shared-cache in-memory DB plus direct repository tests (no Infrastructure.Tests project).
+- Plans: 014 FR-018 owns the product management page and protected layout; R001 plans extend it, never create it or pick its route.
+- Plans: existing HealthEndpointsTests uses a bare WebApplicationFactory<Program>; any new startup requirement (connection string, migration) must update it in the file structure.
+- Plans: React Router navigation state lives in history.state and survives reload; "no state on reload → redirect" is wrong.
+- Plans: SQLite returns DateTime with Kind=Unspecified; check UTC round trip in replies built from read-back data (replay paths).
+- Plans: SqliteErrorCode 19 matches any constraint; unique violations are extended code 2067.
