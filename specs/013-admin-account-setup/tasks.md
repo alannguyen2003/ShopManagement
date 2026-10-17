@@ -46,7 +46,7 @@ Application contracts
 
 - [x] T012 [P] Write tests for `SetUpAdminAccountCommand`: `ToString()` contains neither the sign-in name nor the initial password; `SignInNameSetting == "AdminSetup:SignInName"` and `InitialPasswordSetting == "AdminSetup:InitialPassword"` — Application.Tests/AdminAccounts/SetUpAdminAccount/SetUpAdminAccountCommandTests.cs
 - [x] T013 Implement `SetUpAdminAccountCommand` as a sealed class whose `ToString()` returns only the type name (research R2) so T012 passes — Application/AdminAccounts/SetUpAdminAccount/SetUpAdminAccountCommand.cs
-- [ ] T014 Declare the Application interfaces and enum of contracts/application.md, with no logic: `IDatabaseMigrator` (Application/Common/), `IPasswordHasher`, `IAdminAccountRepository`, `AddAdminAccountOutcome` (Application/AdminAccounts/). Their use is tested by T020, T022 and T028. The error classes and outcome types are created by the tasks whose tests assert them (T021, T023, T029, T041, T047) — Application/Common/IDatabaseMigrator.cs, Application/AdminAccounts/IPasswordHasher.cs, IAdminAccountRepository.cs, AddAdminAccountOutcome.cs
+- [x] T014 Declare the Application interfaces and enum of contracts/application.md, with no logic: `IDatabaseMigrator` (Application/Common/), `IPasswordHasher`, `IAdminAccountRepository`, `AddAdminAccountOutcome` (Application/AdminAccounts/). Their use is tested by T020, T022 and T028. The error classes and outcome types are created by the tasks whose tests assert them (T021, T023, T029, T041, T047) — Application/Common/IDatabaseMigrator.cs, Application/AdminAccounts/IPasswordHasher.cs, IAdminAccountRepository.cs, AddAdminAccountOutcome.cs
 
 Infrastructure (tested from IntegrationTests, as there is no Infrastructure test project)
 
