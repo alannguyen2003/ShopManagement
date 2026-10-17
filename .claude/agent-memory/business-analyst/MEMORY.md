@@ -8,7 +8,7 @@
 - R002 (Admin sign-in) vocabulary: Admin account, Sign-in name, Admin account setup, Initial password, Sign-in page, Admin session, Admin activity, Failed sign-in attempt, Lockout, Idle timeout, Maximum session length, Expired session, Ended session, System operator.
 - Every requirements document restarts its BR/BG/QE/BL numbering, so cross-document references must carry the prefix (e.g. "R001 BR-049").
 - R001 BR-049 (form kept in the same tab after an expired session, values stored nowhere else) means signing in again has to happen without leaving the current view.
-- `specs/` on main holds only `.gitkeep`; approved specs live on their feature branches (001-add-product on `feat/001-add-product`).
+- Since 2026-10-17 all spec folders 001–019 are merged into `main` (one place to read them); each feature branch `feat/NNN-slug` still exists for its plan, tasks and code.
 - The allowed dependency list has no mail capability, so any email-based feature (password reset, notifications) needs `/sdd-architecture` first.
 - R002 sign-in must be built before R001 BL-01 / spec 001, even though its spec numbers (013+) are higher; the exact R002 items are R002 Open question 13.
 - Besides `/health`, the scaffold maps the OpenAPI document in Development without authentication (Program.cs): also a P5 conflict.
@@ -19,3 +19,8 @@
 - A lockout does not end Admin sessions: the R002 glossary "Admin session" lists every way a session ends, and lockout is not one of them.
 - R002 leaves open: whether a double-submitted wrong sign-in counts once (015 Q1) and whether a successful password change resets the failure count (018 Q3; 019 resets it at recovery).
 - R002 BR-024 (refused operation → sign-in prompt) does not fit a refused sign-out; 016 owns that decision (016 Q1).
+- R001 spec numbers do not follow BL order: 001=BL-01, 002=BL-02, 003=BL-03, 004=BL-04, 005=BL-05, 006=BL-08, 007=BL-06, 008=BL-07, 009=BL-09, 010=BL-10, 011=BL-12, 012=BL-11.
+- The shop works in Vietnamese (VND, names with diacritics such as "Đèn bàn"): text matching and ordering rules must say how accents and differently-entered accented letters are handled.
+- Cross-cutting R001 decisions to answer once for all sibling specs: reject vs ignore extra request fields (001/004), price input format with dot separators (001/004), lost-response retry (001/006), browser-history step per list-state change (002/008/009/010/012), Vietnamese accents in search/sort (009/012), invalid list parameters fall back vs reject (008 vs 009/010/012).
+- BR-045 (deleted SKU stays reserved on add and update) applies to BL-04 although its Covers omits it; BR-048 is owned by BL-06/007; 007 records the deletion date that 011 (BR-046) shows.
+- NFR numbering in specs: use one scheme per batch — sequential "NFR-001 (QE-01)" with the source QE in brackets, not "NFR number = QE number".
