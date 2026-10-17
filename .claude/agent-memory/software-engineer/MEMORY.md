@@ -10,3 +10,4 @@
 - `ConfigureTestServices` on `IWebHostBuilder` is in `Microsoft.AspNetCore.TestHost`, so add that using.
 - A test factory cannot tell a default value from an explicit null in one signature, so use constructor overloads when null has a meaning.
 - Simpler than post-processing escapes: build special characters in test sources with `((char)0x00A0).ToString()` or `char.ConvertFromUtf32(0x1F600)`, which keeps the file ASCII-only.
+- `Process.Kill(entireProcessTree: true)` reliably stops `dotnet <dll>` children; after an exit, call the parameterless `WaitForExit()` so redirected output handlers are flushed before reading the captured text.
