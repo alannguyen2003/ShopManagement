@@ -1,0 +1,1 @@
+- `dotnet new tool-manifest --output <dir>` writes `dotnet-tools.json` into `<dir>` itself, not `<dir>/.config/`; use `--output <repo-root>/.config` or move the file afterwards.

@@ -16,7 +16,7 @@ Test values for log and storage searches always come from `TestSecrets` (generat
 
 ## Phase 1 — Setup
 
-- [ ] T001 Create the local tool manifest at the repository root and install `dotnet-ef` 10.0.13 and `dotnet-reportgenerator-globaltool` into it (from `src/backend`: `dotnet new tool-manifest --output ../..`, `dotnet tool install dotnet-ef --version 10.0.13`, `dotnet tool install dotnet-reportgenerator-globaltool`) — .config/dotnet-tools.json
+- [x] T001 Create the local tool manifest at the repository root and install `dotnet-ef` 10.0.13 and `dotnet-reportgenerator-globaltool` into it (from `src/backend`: `dotnet new tool-manifest --output ../..`, `dotnet tool install dotnet-ef --version 10.0.13`, `dotnet tool install dotnet-reportgenerator-globaltool`) — .config/dotnet-tools.json
 - [ ] T002 [P] Add a `UserSecretsId` to the Api with `dotnet user-secrets init --project src/ShopManagement.Api` (from `src/backend`) — Api/ShopManagement.Api.csproj
 - [ ] T003 [P] Ignore SQLite files and backend test results: `*.db`, `*.db-shm`, `*.db-wal`, `src/backend/TestResults/` — .gitignore
 
