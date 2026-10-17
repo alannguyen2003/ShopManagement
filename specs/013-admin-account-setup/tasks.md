@@ -79,7 +79,7 @@ Infrastructure (tested from IntegrationTests, as there is no Infrastructure test
     - `ListAsync` reads `AdminAccountRows` and converts each row with `AdminAccount.Restore`. A NULL password field becomes an empty value or 0; a NULL name gives `UnreadableStoredData`.
     - `AddAsync` writes an `AdminAccountRecord`. It catches only a `DbUpdateException` whose `SqliteException` has extended code 1555, detaches the record and returns `AlreadyExists`, and rethrows anything else.
   - Then run the schema (T017) and repository (T020) tests (plan "Risks"). Both call `Database.Migrate()`, which raises EF Core's pending-model-changes error if there is one; T022 re-checks this through `DatabaseMigrator`. If it reports pending changes, run (from `src/backend`) `dotnet ef migrations remove --project src/ShopManagement.Infrastructure --startup-project src/ShopManagement.Api`, then T019's add command. The T017 schema tests must stay green.
-- [ ] T022 Write tests for `DatabaseMigrator` — IntegrationTests/AdminAccounts/DatabaseMigratorTests.cs:
+- [x] T022 Write tests for `DatabaseMigrator` — IntegrationTests/AdminAccounts/DatabaseMigratorTests.cs:
   - The migrator is built as in T023 (configuration + `AppDbContext` + lock timeout).
   - Connection string absent or empty → failure `ConnectionStringMissing`, code `StoredData.ConnectionStringMissing`; building the `AppDbContext` for it does not throw.
   - A path to a file that does not exist → file created with the `AdminAccounts` table (FR-016).
