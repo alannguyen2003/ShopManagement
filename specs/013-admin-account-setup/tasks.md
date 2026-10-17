@@ -127,7 +127,7 @@ Integration test support
   - US1 #10: 11 emoji + 1 letter → created.
   - US1 #11: the captured log has "Admin account created at <ISO 8601 time>" and the reminder to remove `AdminSetup:InitialPassword`; it holds neither the name, the password, the hash (base64 and hex), nor "Size =" (FR-013, NFR-003).
   - SC-001: no stored column equals the readable password.
-- [ ] T034 [US1] Write process tests — IntegrationTests/AdminAccounts/AdminAccountSetupProcessTests.cs:
+- [x] T034 [US1] Write process tests — IntegrationTests/AdminAccounts/AdminAccountSetupProcessTests.cs:
   - US1 #11: the creation message appears before "Now listening on"; stdout and stderr hold neither generated value nor the hash (NFR-003).
   - FR-016 / SC-004: a database file that does not exist, in an empty temporary folder, with only `ConnectionStrings__Default` and the two `AdminSetup__*` values set → the file is created, the account is created, the process listens.
 - [ ] T035 [US1] Register in `AddInfrastructure()`: `AppDbContext` (scoped) on SQLite with `ConnectionStrings:Default` read when the context is resolved, using `UseSqlite(connectionString)` when the value is present and the parameterless `UseSqlite()` when it is absent or empty, so resolving the handler never throws and `DatabaseMigrator` reports `ConnectionStringMissing`; `IDatabaseMigrator` → `DatabaseMigrator` (scoped, `DefaultLockTimeout`); `IAdminAccountRepository` → `AdminAccountRepository` (scoped); `IPasswordHasher` → `Pbkdf2PasswordHasher` (singleton, stateless); `TimeProvider.System` (singleton) — Infrastructure/DependencyInjection.cs

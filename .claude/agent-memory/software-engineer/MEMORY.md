@@ -13,3 +13,5 @@
 - `Process.Kill(entireProcessTree: true)` reliably stops `dotnet <dll>` children; after an exit, call the parameterless `WaitForExit()` so redirected output handlers are flushed before reading the captured text.
 - In-process tests start the host (and so the `Program.cs` startup step) with one `factory.CreateClient()` in a `using`; dispose the factory in the test.
 - `TestSecrets` passwords are 16 characters; slice with `[..12]` when a test needs exactly 12.
+- Process tests run the built Api dll from `bin/<Configuration>/net10.0`: build the solution first; `--no-build` for quick reruns.
+- In process tests, assert the behavior (log line, file exists) before reading the database, so a missing table does not mask the real reason with a `SqliteException`.
