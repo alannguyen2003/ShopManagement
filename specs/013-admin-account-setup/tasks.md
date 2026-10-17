@@ -91,7 +91,7 @@ Infrastructure (tested from IntegrationTests, as there is no Infrastructure test
 Integration test support
 
 - [x] T024 Change `HealthEndpointsTests` to create its own `SqliteTestDatabase` and a `ShopApiFactory` on it (both do not exist yet, so the test project fails to build) — IntegrationTests/HealthEndpointsTests.cs
-- [ ] T025 Implement the test support so T024 passes (research R10) — IntegrationTests/TestSupport/SqliteTestDatabase.cs, CapturingLoggerProvider.cs, TestSecrets.cs, ShopApiFactory.cs:
+- [x] T025 Implement the test support so T024 passes (research R10) — IntegrationTests/TestSupport/SqliteTestDatabase.cs, CapturingLoggerProvider.cs, TestSecrets.cs, ShopApiFactory.cs:
   - `SqliteTestDatabase`: one per test, created in the test (not an xUnit class fixture, which would share one database across the class); `IDisposable`; owns the sentinel connection to its own `Data Source=<guid>;Mode=Memory;Cache=Shared` database; exposes the connection string. A test that needs two databases (US1 #2) creates two; a restart test builds two factories on the same one.
   - `CapturingLoggerProvider`: keeps level, category and formatted message.
   - `TestSecrets`: sign-in name `op-` + 8 random letters and digits, password `Kx9!` + 12 random characters, generated at runtime.
