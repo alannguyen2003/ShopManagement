@@ -29,7 +29,9 @@ As the system operator, I want the system to create the single Admin account fro
 5. **Given** no Admin account exists, the sign-in name is exactly 100 characters long and the initial password is exactly 12 characters long, **When** the system starts, **Then** the Admin account is created (BR-005, BR-007).
 6. **Given** no Admin account exists and the initial password is exactly 128 characters long, **When** the system starts, **Then** the Admin account is created (BR-007).
 7. **Given** no Admin account exists and the initial password is "  my shop pass  " (16 characters, with leading and trailing spaces), **When** the system starts, **Then** the stored hash matches that exact password with its spaces, and does not match "my shop pass" (BR-007; R002 BR-006).
-8. **Given** no Admin account exists and the setup values are valid, **When** the system starts, **Then** the log records, with its time, that the Admin account was created and that the initial password should now be removed from the setup values. The log contains neither the sign-in name, nor the initial password, nor the hash.
+8. **Given** no Admin account exists and the initial password is "café-shop-2026" written with "e" followed by a combining accent (15 code points before normalization, 14 after), **When** the system starts, **Then** the Admin account is created, and the stored hash matches "café-shop-2026" written with the single precomposed letter "é" (FR-015).
+9. **Given** no Admin account exists and the initial password is 11 emoji followed by one letter (12 code points), **When** the system starts, **Then** the Admin account is created (FR-015, BR-007).
+10. **Given** no Admin account exists and the setup values are valid, **When** the system starts, **Then** the log records, with its time, that the Admin account was created and that the initial password should now be removed from the setup values. The log contains neither the sign-in name, nor the initial password, nor the hash.
 
 ### US2 — Refuse to start without valid setup values (Priority: P1)
 
@@ -48,6 +50,8 @@ As the system operator, I want the system to refuse to start when it has no Admi
 6. **Given** no Admin account exists and the sign-in name is 101 characters long after the leading and trailing spaces are removed, **When** the system starts, **Then** it does not start, and the log says the sign-in name is longer than 100 characters, without the value (BR-003, BR-005).
 7. **Given** no Admin account exists and the sign-in name and initial password are present only in the configuration delivered with the system, **When** the system starts, **Then** they are treated as missing: the system does not start and no Admin account exists (BR-002).
 8. **Given** a start has failed because the setup values were invalid, **When** the system operator corrects them and starts the system again, **Then** the Admin account is created as in US1 (BR-003).
+9. **Given** no Admin account exists and the initial password is a valid 16-character password followed by a line break, **When** the system starts, **Then** it does not start, no Admin account exists, and the log says the initial password contains a control character, without the value or the position of the character (BR-003, BR-007).
+10. **Given** no Admin account exists and the initial password contains a tab between its characters, **When** the system starts, **Then** it does not start and no Admin account exists, as in scenario 9 (BR-003, BR-007).
 
 ### US3 — Leave the existing Admin account unchanged (Priority: P1)
 
@@ -80,11 +84,12 @@ As the system operator, I want a warning at each start while the initial passwor
 ## Edge cases
 
 - No Admin account exists and both setup values are invalid (for example, an empty sign-in name and a 5-character password): every problem is logged during the same start, so the system operator can fix them all at once. The system does not start (BR-003).
-- An initial password made only of spaces, or containing any other characters, counts like any other password. It is accepted if it is 12 to 128 characters long (BR-007: any characters, no composition rules).
+- An initial password made only of spaces, or containing any other printable characters, counts like any other password. It is accepted if it is 12 to 128 characters long (BR-007: no composition rules). Only control characters are refused (FR-007).
+- The initial password ends with a line break picked up from the environment (for example, a value copied from a file): it is refused, not silently trimmed, so the stored hash always matches exactly what the Admin will type (FR-007).
 - The initial password setting is present but empty: treated as missing (BR-003). When the Admin account exists, an empty value does not trigger the warning of US4.
 - The system stops part-way through creating the Admin account (for example, the process is killed): no partial Admin account remains, and the next start creates it as in US1 (FR-012).
 - Two starts of the system against the same stored data happen at the same time with no Admin account: exactly one Admin account ends up existing (FR-001).
-- The stored data cannot be read at start, or holds more than one Admin account, or an Admin account whose stored password cannot be used: the system does not start and logs the problem without any value (FR-014; constitution P9).
+- The stored data cannot be read at start, or holds more than one Admin account, or an Admin account whose stored password cannot be used: the system does not start and logs the problem without any value (FR-014; constitution P9). Exception: if the only problem is an unusable stored password and the setup values hold a valid recovery, the recovery (019) replaces the password and the system starts.
 - The setup values hold a reset indication while no Admin account exists: handled by 019-password-recovery (its FR-016). Until 019 is built, this feature does not know the reset indication and ignores it like any other unknown setting.
 - The sign-in name in the setup values changes after the Admin account exists: it is ignored. Changing the sign-in name is out of scope in R002.
 
@@ -96,14 +101,15 @@ As the system operator, I want a warning at each start while the initial passwor
 - **FR-004:** The system MUST NOT create an Admin account with a built-in or default password. When no Admin account exists and a setup value is missing or invalid, the system MUST NOT start and MUST NOT create an Admin account (BR-003).
 - **FR-005:** When the system does not start under FR-004, it MUST log every missing or invalid setting, by its name and with the rule it breaks. The log MUST NOT contain the value or its length (BR-003).
 - **FR-006:** The sign-in name MUST be 1 to 100 characters long after leading and trailing spaces are removed. No email format is checked. It is stored without the leading and trailing spaces, with its letter case kept (BR-005).
-- **FR-007:** The initial password MUST be 12 to 128 characters long. Any characters are allowed, there are no composition rules, and the password is used exactly as given, spaces included (BR-007). An initial password containing a line break, a tab or another control character MUST [NEEDS CLARIFICATION: be refused (the system does not start), or be accepted as BR-007 says although the sign-in field can never reproduce it? See Open question 2].
+- **FR-015:** Before any length check, hashing or storing, the system MUST normalize the sign-in name and the initial password to Unicode Normalization Form C (NFC). Lengths MUST be counted in Unicode code points of the normalized value (an emoji or an accented letter counts as 1). Specs 014, 018 and 019 MUST apply the same normalization and counting, so the same visible password always matches whatever device it is typed on.
+- **FR-007:** The initial password MUST be 12 to 128 characters long. Any characters are allowed, there are no composition rules, and the password is used exactly as given, spaces included (BR-007). The one exception: an initial password containing a control character (a line break, a tab or any other Unicode control character) is invalid, because the single-line sign-in field can never reproduce it. The system then does not start, as FR-004 and FR-005 require (BR-007 as amended, see Open question 3).
 - **FR-008:** The system MUST store the password only as a salted slow hash, as constitution P4 requires. It MUST never store, show, log or return the password in readable form (BR-008).
 - **FR-009:** Once the Admin account exists, the system MUST NOT change its sign-in name or password from the setup values, whether they are present, absent, valid or invalid. The only exception is the recovery of BL-07 (BR-004).
 - **FR-010:** Once the Admin account exists, the system MUST start without requiring any setup values (BR-004).
 - **FR-011:** At every start where the Admin account already exists and an initial password is present in the setup values, the system MUST start normally and log a warning, without the value, that the initial password should be removed from the setup values (BR-047).
 - **FR-012:** Creating the Admin account MUST be all-or-nothing. An interrupted creation leaves no Admin account, and the next start creates it (assumption).
 - **FR-013:** At the start that creates the Admin account, the system MUST log the creation with its time, and remind the system operator to remove the initial password from the setup values. The log MUST NOT contain the sign-in name, the password or the hash (assumption).
-- **FR-014:** When the stored data cannot be read, holds more than one Admin account, or holds an Admin account whose stored password cannot be used, the system MUST NOT start, and MUST log the problem without any value (assumption; constitution P9). A stored password cannot be used when its record is missing or unreadable, its algorithm is not PBKDF2-HMAC-SHA256, its salt is shorter than 16 bytes or its iteration count is below 600,000 (constitution P4). Whether a recovery (019) may repair such a password at the same start: [NEEDS CLARIFICATION: see Open question 1].
+- **FR-014:** When the stored data cannot be read, holds more than one Admin account, or holds an Admin account whose stored password cannot be used, the system MUST NOT start, and MUST log the problem without any value (assumption; constitution P9). A stored password cannot be used when its record is missing or unreadable, its algorithm is not PBKDF2-HMAC-SHA256, its salt is shorter than 16 bytes or its iteration count is below 600,000 (constitution P4). The one exception: when exactly one Admin account exists and only its stored password cannot be used, a valid recovery in the setup values (BL-07, spec 019) replaces that password at the same start, and the system starts. Applying the recovery is 019's job; this feature MUST NOT refuse to start before 019 has had the chance to do so.
 
 ## Non-functional requirements
 
@@ -133,14 +139,13 @@ As the system operator, I want a warning at each start while the initial passwor
 | BR-003 | FR-004, FR-005, SC-002, US2 scenarios 1–8, edge cases (several invalid, empty value) |
 | BR-004 | FR-009, FR-010, US3 scenarios 1–3 |
 | BR-005 | FR-006, US1 scenarios 3–5, US2 scenarios 5–6 |
-| BR-007 | FR-007, US1 scenarios 5–7, US2 scenarios 3–4, edge case (only spaces) |
+| BR-007 | FR-007, FR-015, US1 scenarios 5–9, US2 scenarios 3–4 and 9–10, edge cases (only spaces, trailing line break) |
 | BR-008 | FR-008, NFR-001, NFR-002, US1 scenarios 1–2 |
 | BR-047 | FR-011, US4 scenarios 1–4 |
 | QE-03 | NFR-003 |
 
 ## Assumptions
 
-- Lengths are counted in characters as the system operator types them, and the same counting is used at setup, at a password change (BL-06) and at recovery (BL-07).
 - The sign-in name is stored without leading and trailing spaces and with its letter case kept. Matching it while ignoring case is BL-02's job (R002 BR-006).
 - The log for an invalid setup value gives the rule that was broken (for example "shorter than 12 characters"), never the actual length or the value.
 - Every problem in the setup values is logged during the same refused start, rather than only the first one.
@@ -166,13 +171,17 @@ As the system operator, I want a warning at each start while the initial passwor
 
 ## Open questions
 
-- [ ] 1. When the stored Admin password cannot be used (FR-014) and the setup values also hold a valid recovery (019), may that recovery repair it at the same start? A) Yes: a valid recovery replaces an unusable stored password, so the system operator has a way back without editing stored data by hand (019 gets a matching scenario). B) No: the system refuses to start whatever the setup values say. Recommended: A, because otherwise a damaged password record locks the system operator out for good. (affects: FR-014, spec 019 FR-002)
-- [ ] 2. Should an initial password (and a recovery's new password, spec 019) that contains a line break, a tab or another control character be refused? Such characters slip in easily from the environment, and the single-line password field can never reproduce them, so the Admin would be locked out from the first start. A) Refuse: the system does not start and logs the rule without the value. B) Accept, as BR-007 ("any characters") says. Recommended: A. It narrows BR-007, so it needs `/sdd-amend requirements R002`, and 019 must apply the same answer. (affects: FR-007, US2, spec 019 FR-003)
+- [x] 1. When the stored Admin password cannot be used (FR-014) and the setup values also hold a valid recovery (019), may that recovery repair it at the same start? → Yes (FR-014; spec 019 needs a matching scenario).
+- [x] 2. Should an initial password (and a recovery's new password, spec 019) that contains a line break, a tab or another control character be refused? → Refuse (FR-007, US2 scenarios 9–10).
+- [ ] 3. **Blocking approval:** the answer to question 2 narrows R002 BR-007 ("any characters are allowed"), which is Approved and takes precedence over this spec. Before `/sdd-approve spec`, run `/sdd-amend requirements R002 "BR-007: a password must not contain control characters (line break, tab or other Unicode control characters); applies at setup, change and recovery"`. Specs 018 and 019 must then apply the same rule. (affects: FR-007, R002 BR-007, specs 018, 019)
 
 ## Clarification log
 
 | Date | Question | Decision |
 |------|----------|----------|
+| 2026-10-17 | May a valid recovery (019) repair an unusable stored password at the same start? | Yes, when exactly one Admin account exists and only its password is unusable; otherwise FR-014 refuses to start. 019 must add a matching scenario. |
+| 2026-10-17 | Refuse an initial password containing control characters? | Refuse: the system does not start and logs the rule without the value. Requires amending R002 BR-007 (Open question 3); 018 and 019 apply the same rule. |
+| 2026-10-17 | How are lengths counted, and is Unicode normalized? | Normalize to NFC before checking, hashing and storing; count code points of the normalized value (FR-015). 014, 018 and 019 apply the same rule. |
 
 ## Revision history
 
