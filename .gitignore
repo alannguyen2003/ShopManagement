@@ -12,3 +12,9 @@ coverage/
 playwright-report/
 test-results/
 *.user
+
+# SQLite database files and backend test results
+*.db
+*.db-shm
+*.db-wal
+src/backend/TestResults/
