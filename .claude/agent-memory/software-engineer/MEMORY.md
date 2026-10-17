@@ -3,3 +3,4 @@
 - The Write and Edit tools (and Bash heredocs written from tool input) turn `\uXXXX` sequences in source text into the literal characters (invisible ones included), and sed mangles the backslashes. To keep escapes in C# files, post-process with a node script that builds the backslash via `String.fromCharCode(92)`, then confirm ASCII only with `LC_ALL=C grep -c '[^ -~]' <file>`.
 - A Bash heredoc that writes into a directory that does not exist yet fails silently, so run `mkdir -p` first.
 - A test that only uses `Assert.Throws<SqliteException>` passes spuriously when the table is missing. Assert on the message or extended error code, so the red step fails for the right reason.
+- A Bash heredoc containing escaped quotes (`\"`) can fail with "unexpected EOF". Create such C# files with the Write tool instead.
