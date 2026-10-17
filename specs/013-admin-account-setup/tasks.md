@@ -39,7 +39,7 @@ Domain
 - [x] T007 Implement `CredentialRuleViolation` and `AdminCredentialRules` (NFC, `Trim()`, `EnumerateRunes().Count()`, `Rune.IsControl`; `Normalize*` catches only `ArgumentException`) so T006 passes — Domain/AdminAccounts/CredentialRuleViolation.cs, Domain/AdminAccounts/AdminCredentialRules.cs
 - [x] T008 Write tests for `StoredPassword.IsUsable`: true for `PBKDF2-HMAC-SHA256`, 16-byte salt, 600,000 iterations, 32-byte hash; false for another or empty algorithm, a 15-byte or empty salt, 599,999 iterations, a hash of 31, 33 or 0 bytes — Domain.Tests/AdminAccounts/StoredPasswordTests.cs
 - [x] T009 Implement `StoredPassword` with its constants (data-model.md) so T008 passes — Domain/AdminAccounts/StoredPassword.cs
-- [ ] T010 Write tests for `AdminAccount`: `Create` gives `Id == SingleId == 1` and keeps the name and password; `Create` throws `ArgumentException` for a name that breaks `AdminCredentialRules` or an unusable password; `Restore` accepts both without a check — Domain.Tests/AdminAccounts/AdminAccountTests.cs
+- [x] T010 Write tests for `AdminAccount`: `Create` gives `Id == SingleId == 1` and keeps the name and password; `Create` throws `ArgumentException` for a name that breaks `AdminCredentialRules` or an unusable password; `Restore` accepts both without a check — Domain.Tests/AdminAccounts/AdminAccountTests.cs
 - [ ] T011 Implement `AdminAccount` (`Create`, `Restore`) so T010 passes — Domain/AdminAccounts/AdminAccount.cs
 
 Application contracts
