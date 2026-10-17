@@ -12,3 +12,10 @@
 - The allowed dependency list has no mail capability, so any email-based feature (password reset, notifications) needs `/sdd-architecture` first.
 - R002 sign-in must be built before R001 BL-01 / spec 001, even though its spec numbers (013+) are higher; the exact R002 items are R002 Open question 13.
 - Besides `/health`, the scaffold maps the OpenAPI document in Development without authentication (Program.cs): also a P5 conflict.
+- R002 specs number NFRs after the QE they come from (gaps are expected); say so in the spec's Assumptions so reviewers do not flag missing numbers. 013 and 015 use local numbering for non-QE checks.
+- R002 product management page is an empty layout (BL-02/014), so R002 UI scenarios that need an Admin-started operation have almost nothing to act on (see 017 Open question 1).
+- A rule about a concept that a later backlog item introduces (e.g. the reset indication of BL-07) belongs only in that item's spec; earlier specs point to it.
+- R002 lockout count is fed by sign-in (015) and password change (018, BR-030); 015 owns the count and the concurrency limit for both entry points.
+- A lockout does not end Admin sessions: the R002 glossary "Admin session" lists every way a session ends, and lockout is not one of them.
+- R002 leaves open: whether a double-submitted wrong sign-in counts once (015 Q1) and whether a successful password change resets the failure count (018 Q3; 019 resets it at recovery).
+- R002 BR-024 (refused operation → sign-in prompt) does not fit a refused sign-out; 016 owns that decision (016 Q1).

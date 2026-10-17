@@ -12,3 +12,18 @@
 - Requirements: when P5 applies, check the existing code (Program.cs) for every endpoint that answers without a session (health check, OpenAPI document), not only the one already known.
 - Requirements: the transport-encryption rule must cover every request that carries a session, not only requests that carry a password.
 - Requirements: when a rule from another requirements document is restated, point to it instead of copying it, so one rule is not owned by two documents.
+- Specs: check FR wording against the glossary "Do not call it" list; template phrases like "Users MUST be able to" slip in.
+- Specs: success criteria must not promise more than the FRs and approved BRs; edge cases must not fix an outcome that an open question in the same spec leaves open.
+- Specs: an unconditional "MUST apply X" FR must not contradict later FRs that forbid X in some cases.
+- Specs: one open decision shared by sibling specs is owned by one spec; the other points to it.
+- Specs: "0 occurrences of X in logs" criteria need distinctive test values ("admin" matches ordinary log text); "without the value" in log rules should also say "or its length".
+- Specs: secrets read from the environment can carry line breaks or control characters the UI field can never reproduce; runtime rules must use observable properties ("delivered with the system", not "committed").
+- Specs: a storage rule (BR-008 / P4) needs an acceptance scenario that reads the stored result, not only an FR.
+- Specs: scenarios that assert state across a restart depend on the spec that makes that state survive (sessions: 017 US4); name it and mark the scenarios.
+- Specs (SPA): idle-timeout rules must say whether loading or reloading a page counts as activity; "show the sign-in page without a session" must be limited to opening a page so it does not contradict a sign-in prompt.
+- Specs: when a surface "follows the same rules as" another, point to the whole sibling spec instead of listing a subset of BRs.
+- Specs: a shared security counter fed from two entry points needs an FR and a test across both at the same time; security counters fail closed (an unrecorded failure must not let the attempt succeed).
+- Specs: "processed once / repeat not counted" rules must say how a repeat is recognised (same session, same values, time window); a password change must handle the race with a sign-in using the old password.
+- Specs: a sign-in spec separate from its brute-force protection must say it cannot be released alone (P5); statistical timing NFRs must stay measurable once a lockout stops attempts after 5.
+- Specs: auth specs must cover a forged or altered session value and a sign-in from a browser that already has an Admin session.
+- Plan hint: `Program.cs` uses `UseHttpsRedirection`, which redirects operations that R002 BR-034 says to refuse.
