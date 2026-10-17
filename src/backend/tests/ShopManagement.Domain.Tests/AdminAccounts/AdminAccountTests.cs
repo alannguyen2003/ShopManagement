@@ -81,4 +81,36 @@ public class AdminAccountTests
         Assert.False(account.Password.IsUsable);
         Assert.Same(password, account.Password);
     }
+
+    [Fact]
+    public void Create_UntrimmedName_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => AdminAccount.Create("  admin  ", UsablePassword()));
+    }
+
+    [Fact]
+    public void Create_DecomposedName_ThrowsArgumentException()
+    {
+        Assert.Throws<ArgumentException>(() => AdminAccount.Create("cafe\u0301", UsablePassword()));
+    }
+
+    [Fact]
+    public void Create_ComposedName_IsAccepted()
+    {
+        var account = AdminAccount.Create("caf\u00E9", UsablePassword());
+
+        Assert.Equal("caf\u00E9", account.SignInName);
+    }
+
+    [Fact]
+    public void Create_NullName_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => AdminAccount.Create(null!, UsablePassword()));
+    }
+
+    [Fact]
+    public void Create_NullPassword_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => AdminAccount.Create("admin", null!));
+    }
 }
