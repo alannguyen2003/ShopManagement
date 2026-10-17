@@ -2,7 +2,8 @@
 
 **Feature:** 013-admin-account-setup
 **Plan:** [plan.md](plan.md)
-**Status:** Draft
+**Status:** Approved
+**Approved:** 2026-10-17
 **Revision:** 2
 **Plan revision:** 2
 **Created:** 2026-10-17
