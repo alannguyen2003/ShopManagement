@@ -30,7 +30,7 @@ Domain
 
 - [x] T004 Write tests for `Error.FieldErrors`: it defaults to `null`; it keeps a setting → rule-texts map; `Error.None` and the existing `Result` tests are unchanged — Domain.Tests/Common/ResultTests.cs
 - [x] T005 Add the optional `FieldErrors` parameter to `Error` (contracts/application.md) so T004 passes — Domain/Common/Result.cs
-- [ ] T006 Write tests for `AdminCredentialRules` — Domain.Tests/AdminAccounts/AdminCredentialRulesTests.cs:
+- [x] T006 Write tests for `AdminCredentialRules` — Domain.Tests/AdminAccounts/AdminCredentialRulesTests.cs:
   - `NormalizeSignInName`: NFC; trims space, tab, line break and U+00A0 at both ends; keeps letter case ("  Shop Admin  " → "Shop Admin", "admin\n" → "admin", " admin" → "admin").
   - `NormalizePassword`: NFC only; leading and trailing spaces kept; NFD "café-shop-2026" (15 code points) → NFC form (14 code points).
   - Both return `null` for a value with an unpaired UTF-16 surrogate, without throwing (research R5).
