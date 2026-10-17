@@ -1,1 +1,2 @@
 - `dotnet new tool-manifest --output <dir>` writes `dotnet-tools.json` into `<dir>` itself, not `<dir>/.config/`; use `--output <repo-root>/.config` or move the file afterwards.
+- `dotnet user-secrets init` writes a UTF-8 BOM into the csproj; strip it afterwards (`sed -i '1s/^\xEF\xBB\xBF//'`) unless the file already had one, to keep the diff minimal.
