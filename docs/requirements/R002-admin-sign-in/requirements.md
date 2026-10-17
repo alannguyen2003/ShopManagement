@@ -262,13 +262,13 @@
 
 | ID | Feature | Priority | Size | Depends on | Covers | Spec |
 |----|---------|----------|------|------------|--------|------|
-| BL-01 | Admin account setup | P1 | S | — | BG-04, BR-001, BR-002, BR-003, BR-004, BR-005, BR-007, BR-008, BR-047, QE-03 | — |
-| BL-02 | Sign in and protect every page | P1 | M | BL-01 | BG-01, BG-02, BG-04, BR-005, BR-006, BR-008, BR-009, BR-010, BR-011, BR-012, BR-013, BR-014, BR-015, BR-019, BR-034, BR-035, BR-041, QE-01, QE-02, QE-03, QE-04, QE-06, QE-07, QE-08 | — |
-| BL-03 | Lock sign-in after failed attempts | P1 | S | BL-02 | BG-03, BR-016, BR-017, BR-018, BR-019, BR-040, BR-044, BR-045, QE-03, QE-04 | — |
-| BL-04 | Sign out | P1 | S | BL-02 | BR-019, BR-023, BR-026, BR-027, BR-039, QE-02, QE-03, QE-05 | — |
-| BL-05 | Session expiry and signing in again | P1 | M | BL-02 | BR-020, BR-021, BR-022, BR-023, BR-024, BR-025, BR-038, BR-043, BR-045, QE-05 | — |
-| BL-06 | Change password | P2 | S | BL-02, BL-03 | BG-04, BR-007, BR-008, BR-019, BR-028, BR-029, BR-030, BR-031, BR-032, BR-034, BR-036, BR-042, QE-03, QE-05, QE-06, QE-07 | — |
-| BL-07 | Recover a forgotten password | P2 | S | BL-01, BL-02, BL-03 | BR-004, BR-007, BR-008, BR-019, BR-033, BR-037, BR-046, QE-03, QE-05 | — |
+| BL-01 | Admin account setup | P1 | S | — | BG-04, BR-001, BR-002, BR-003, BR-004, BR-005, BR-007, BR-008, BR-047, QE-03 | 013-admin-account-setup |
+| BL-02 | Sign in and protect every page | P1 | M | BL-01 | BG-01, BG-02, BG-04, BR-005, BR-006, BR-008, BR-009, BR-010, BR-011, BR-012, BR-013, BR-014, BR-015, BR-019, BR-034, BR-035, BR-041, QE-01, QE-02, QE-03, QE-04, QE-06, QE-07, QE-08 | 014-admin-sign-in |
+| BL-03 | Lock sign-in after failed attempts | P1 | S | BL-02 | BG-03, BR-016, BR-017, BR-018, BR-019, BR-040, BR-044, BR-045, QE-03, QE-04 | 015-sign-in-lockout |
+| BL-04 | Sign out | P1 | S | BL-02 | BR-019, BR-023, BR-026, BR-027, BR-039, QE-02, QE-03, QE-05 | 016-sign-out |
+| BL-05 | Session expiry and signing in again | P1 | M | BL-02 | BR-020, BR-021, BR-022, BR-023, BR-024, BR-025, BR-038, BR-043, BR-045, QE-05 | 017-session-expiry |
+| BL-06 | Change password | P2 | S | BL-02, BL-03 | BG-04, BR-007, BR-008, BR-019, BR-028, BR-029, BR-030, BR-031, BR-032, BR-034, BR-036, BR-042, QE-03, QE-05, QE-06, QE-07 | 018-change-password |
+| BL-07 | Recover a forgotten password | P2 | S | BL-01, BL-02, BL-03 | BR-004, BR-007, BR-008, BR-019, BR-033, BR-037, BR-046, QE-03, QE-05 | 019-password-recovery |
 
 Size: `S` ≤ 1 day, `M` 1–3 days. The `Spec` column holds the reserved `NNN-slug` once `/sdd-ba-spec` creates the spec; `—` until then.
 
